@@ -26,7 +26,7 @@ export class GameScene extends Phaser.Scene {
 }
 
 renderFoundation() {
-  const fStartX = 100;
+  const fStartX = 350;
   const fStartY = 400;
   const gap = 80;
 
@@ -76,7 +76,7 @@ renderFoundation() {
 
   this.add.text(
     fStartX + (aceCards.length - 1) * gap / 2, 
-    fStartY - 60, 
+    fStartY - 70, 
     'Asc', 
     {
         fontSize: '18px',
@@ -87,7 +87,7 @@ renderFoundation() {
 
 this.add.text(
     fStartX + (aceCards.length + kingCards.length - 1) * gap / 1.27, 
-    fStartY - 60,
+    fStartY - 70,
     'Desc',
     {
         fontSize: '18px',
@@ -100,41 +100,50 @@ this.add.text(
 
   renderDeck(deck) {
 
-    const startX = 100;
-    const startY = 200;
+    const startX = 350;
+    const startY = 100;
     const gapX = 80;
-    const stacks = 8;
-    if (this.deckText) {
-    this.deckText.destroy();
-}
+    const gapY = 120;
+    const stacksPerRow = 8;
+    const rows = 2;
 
-this.deckText = this.add.text(
-    (startX + stacks * gapX) / 2, 
-    startY - 80,
-    'Deck',
-    {
-        fontSize: '18px',
-        color: '#000000',
-        fontStyle: 'bold'
+    const stacks = stacksPerRow * rows;
+    if (this.deckText) {
+      this.deckText.destroy();
     }
-).setOrigin(0.5).setDepth(500);
+
+    this.deckText = this.add.text(
+        this.scale.width / 2, 
+        startY - 80,
+        'Deck',
+        {
+            fontSize: '18px',
+            color: '#000000',
+            fontStyle: 'bold'
+        }
+    ).setOrigin(0.5).setDepth(500);
     const tableau = Array.from({ length: stacks }, () => []);
 
     deck.forEach((card, i) => {
-      const stackIndex = i % stacks;
-      const x = startX + stackIndex * gapX;
-      const y = startY;
+        const stackIndex = i % stacks;
+        const row = Math.floor(stackIndex / stacksPerRow);
+        const col = stackIndex % stacksPerRow;
 
-      card.startX = x;
-    card.startY = y;
-      card.img = this.add.image(x, y, card.key)
+        const x = startX + col * gapX;
+        const y = startY + row * gapY;
+
+        card.startX = x;
+        card.startY = y;
+
+        card.img = this.add.image(x, y, card.key)
             .setScale(0.1)
             .setInteractive({ draggable: true });
-      tableau[stackIndex].push(card);
+
+        tableau[stackIndex].push(card);
     });
 
     this.input.on('dragstart', (pointer, gameObject) => {
-        gameObject.setDepth(1); 
+        gameObject.setDepth(100); 
         console.log(pointer, gameObject)
     });
 
@@ -181,8 +190,8 @@ this.deckText = this.add.text(
   renderButton() {
     const btnWidth = 220;
     const btnHeight = 50;
-    const btnX = 700;
-    const btnY = 50;
+    const btnX = this.scale.width / 2;
+    const btnY = 550;
 
     const buttonBg = this.add.rectangle(btnX, btnY, btnWidth, btnHeight, 0x6666ff)
         .setInteractive({ useHandCursor: true })  
@@ -202,8 +211,8 @@ this.deckText = this.add.text(
     });
     this.deck = Phaser.Utils.Array.Shuffle(this.deck);
     this.input.removeAllListeners('dragstart');
-this.input.removeAllListeners('drag');
-this.input.removeAllListeners('dragend');
+    this.input.removeAllListeners('drag');
+    this.input.removeAllListeners('dragend');
     this.renderDeck(this.deck)
   }
 
