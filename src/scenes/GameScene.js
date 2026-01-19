@@ -33,6 +33,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    this.topDepth = 10000;  
+
     this.hintTimer = this.time.addEvent({
       delay: 5000,
       callback: this.showHint,
@@ -125,6 +127,7 @@ export class GameScene extends Phaser.Scene {
       card.startY = y;
 
       this.tableau[stackIndex].push(card);
+      card.originalDepth = stackIndex * 100 + this.tableau[stackIndex].length;
       card.container.setDepth(stackIndex * 100 + this.tableau[stackIndex].length);
     });
 
@@ -180,6 +183,7 @@ export class GameScene extends Phaser.Scene {
         }
       }
       if (!placed) {
+        currentCard.container.setDepth(currentCard.originalDepth);
         this.tweens.add({
           targets: currentCard.container,
           x: currentCard.startX,
