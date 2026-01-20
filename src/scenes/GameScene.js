@@ -1,4 +1,7 @@
-import createDeck from '../utils.js';
+import { createDeck, isCardValid } from '../utils.js';
+import { playInvalidCardAnimation } from '../invalidCardAnimation.js';
+import { Hint } from '../hint.js';
+import { Hud } from '../hud.js';
 export class GameScene extends Phaser.Scene {
 
   constructor() {
@@ -6,6 +9,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload() {
+    //bg load
+    this.load.image('bg', 'assets/bg_gameplay.jpg');
+
     this.load.atlas('common1', 'assets/spritesheets/common1.png', 'assets/spritesheets/common1.json');
     this.load.image('card_bg', 'assets/cards/card_bg2.png');
     this.load.image('s', 'assets/cards/s.png');
@@ -33,19 +39,25 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    this.topDepth = 10000;  
+    this.isDragging = false;
+    this.hud = new Hud(this, this.reloadDeck.bind(this));
+    this.hint = new Hint(this);
+    const bg = this.add.image(0, 0, 'bg').setOrigin(0, 0);;
+    bg.displayWidth = this.scale.width;
+    bg.displayHeight = this.scale.height;
+    this.topDepth = 10000;
 
     this.hintTimer = this.time.addEvent({
       delay: 5000,
-      callback: this.showHint,
-      callbackScope: this,
-      loop: false
-    })
+      callback: () => {
+        if (this.isDragging) return;
+        this.hint.show(this.foundations, this.tableau);
+      }
+    });
     this.hintArrow = null;
     this.deck = createDeck(this);
     this.renderFoundation();
     this.renderDeck(this.deck);
-    this.renderButton();
   }
 
   renderFoundation() {
@@ -133,13 +145,45 @@ export class GameScene extends Phaser.Scene {
 
 
     this.input.on('dragstart', (pointer, gameObject) => {
-      gameObject.setDepth(10000);
-      console.log(pointer, gameObject)
-      if (this.hintArrow) {
-        this.hintArrow.destroy();
-        this.hintArrow = null;
+      const currentCard = this.deck.find(c => c.container === gameObject);
+      if (!currentCard) return;
+
+      const stackIndex = this.tableau.findIndex(stack => stack.includes(currentCard));
+      if (stackIndex === -1) return;
+      const stack = this.tableau[stackIndex];
+      const topCard = stack[stack.length - 1];
+
+      if (currentCard !== topCard) {
+        gameObject.disableInteractive()
+        gameObject.setDepth(currentCard.originalDepth);
+        return;
       }
+
+      gameObject.setInteractive();
+      gameObject.setDepth(this.topDepth);
+
+      if (!isCardValid(this.foundations, currentCard)) {
+        gameObject.disableInteractive();
+
+        playInvalidCardAnimation(this, gameObject, () => {
+          gameObject.setInteractive({ draggable: true });
+        });
+
+        gameObject.setDepth(currentCard.originalDepth);
+        return;
+      }
+      currentCard.originalScale = currentCard.container.scaleX;
+      currentCard.container.setScale(currentCard.originalScale * 1.05);
+
+      if (this.hint) {
+        this.hint.clear();
+        this.isDragging = true;
+        if (this.hint.hintFoundation) this.hint.drawArrow(this.hint.hintFoundation.x, this.hint.hintFoundation.y - 140, -90, currentCard);
+      }
+
+      console.log('Drag started:', currentCard);
     });
+
 
     this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
       gameObject.x = dragX;
@@ -148,6 +192,7 @@ export class GameScene extends Phaser.Scene {
 
     this.input.on('dragend', (pointer, gameObject) => {
       const currentCard = this.deck.find(c => c.container === gameObject);
+      currentCard.container.setScale(currentCard.originalScale);
       let placed = false;
       for (const f of this.foundations) {
         const dx = gameObject.x - f.x;
@@ -183,52 +228,77 @@ export class GameScene extends Phaser.Scene {
         }
       }
       if (!placed) {
-        currentCard.container.setDepth(currentCard.originalDepth);
         this.tweens.add({
           targets: currentCard.container,
           x: currentCard.startX,
           y: currentCard.startY,
           duration: 200,
-          ease: 'Linear'
+          ease: 'Linear',
+          onComplete: () => {
+            currentCard.container.setDepth(currentCard.originalDepth);
+          }
         });
       }
 
+      this.isDragging = false;
       this.resetHintTimer();
-
+      this.hint.hintFoundation = null;
+      this.hint.hintCard = null;
     });
-  }
-
-  renderButton() {
-    const btnWidth = 220;
-    const btnHeight = 50;
-    const btnX = this.scale.width / 2 + 170;
-    const btnY = 670;
-
-    const buttonBg = this.add.rectangle(btnX, btnY, btnWidth, btnHeight, 0x6666ff)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.reloadDeck());
-
-    const buttonText = this.add.text(btnX, btnY, 'Shuffle cards', {
-      fontSize: '20px',
-      color: '#ffffff'
-    }).setOrigin(0.5);
-
-    this.reloadButton = this.add.container(0, 0, [buttonBg, buttonText]);
   }
 
   reloadDeck() {
-    this.deck.forEach((card, i) => {
-      card.setPosition(card.startX, card.startY);
-      card.container.setDepth(0);
-      card.container.setInteractive();
-    });
-    this.deck = Phaser.Utils.Array.Shuffle(this.deck);
-    this.input.removeAllListeners('dragstart');
-    this.input.removeAllListeners('drag');
-    this.input.removeAllListeners('dragend');
-    this.renderDeck(this.deck)
-    this.resetHintTimer();
-  }
+  const flipDuration = 400;
+
+  const topCards = this.tableau.map(stack => stack[stack.length - 1]).filter(Boolean);
+  if (!topCards.length) return;
+
+  const cardContainers = topCards.map(c => c.container);
+
+  cardContainers.forEach(container => {
+    if (!container.shirtImg) {
+      container.shirtImg = this.add.image(0, 0, 'common1', 'card_shirt');
+      container.add(container.shirtImg);
+      container.shirtImg.setVisible(false);
+    }
+  });
+
+  this.tweens.add({
+    targets: cardContainers,
+    scaleX: 0,
+    duration: flipDuration,
+    ease: 'Linear',
+    onComplete: () => {
+      cardContainers.forEach(container => container.shirtImg.setVisible(true));
+
+      this.tweens.add({
+        targets: cardContainers,
+        scaleX: 1.7,
+        duration: flipDuration,
+        ease: 'Linear',
+        onComplete: () => {
+          this.tweens.add({
+            targets: cardContainers,
+            scaleX: 0,
+            duration: flipDuration,
+            ease: 'Linear',
+            onComplete: () => {
+              cardContainers.forEach(container => container.shirtImg.setVisible(false));
+
+              this.tweens.add({
+                targets: cardContainers,
+                scaleX: 1.7,
+                duration: flipDuration,
+                ease: 'Linear',
+              });
+            }
+          });
+        }
+      });
+    }
+  });
+}
+
 
 
   checkWin() {
@@ -259,61 +329,20 @@ export class GameScene extends Phaser.Scene {
   }
 
   resetHintTimer() {
-    if (this.hintTimer) {
-      this.hintTimer.remove();
-    }
+    if (this.hintTimer) this.hintTimer.remove();
+
+    this.hint.clear();
+
     this.hintTimer = this.time.addEvent({
       delay: 5000,
-      callback: this.showHint,
-      callbackScope: this
+      callback: () => {
+        if (this.isDragging) return;
+        this.hint.show(this.foundations, this.tableau);
+      }
     });
   }
 
-  showHint() {
-    let hintCard = undefined;
-    let hintFoundation = undefined;
-    console.log(this.tableau)
-    for (let i = 0; i < this.foundations.length; ++i) {
-      if (hintCard) break;
-      const type = this.foundations[i].type;
-      const suit = this.foundations[i].suit;
-      const rank = this.foundations[i].cards[this.foundations[i].cards.length - 1].rank;
-      for (let j = 0; j < this.tableau.length; ++j) {
-        if (hintCard) break;
-        const topCard = (this.tableau[j])[this.tableau[j].length - 1];
-        if (type === "asc" && suit === topCard.suit && topCard.rank === rank + 1 || type === "desc" && suit === topCard.suit && topCard.rank === rank - 1) {
-          hintFoundation = this.foundations[i];
-          hintCard = topCard;
-        }
-      }
-    }
 
-    if (!hintCard) {
-      //shuffleHint
-      console.log("shuffle");
-      return;
-    }
-    // I need find x and y for hint arrow here , maybe will use func 
-
-    if (this.hintArrow) {
-      this.hintArrow.destroy();
-      this.hintArrow = null;
-    }
-    this.hintArrow = this.add.image(hintCard.startX, hintCard.startY + 160, 'common1', 'tutorial_arrow').setScale(1.7).setAngle(90).setDepth(100000);
-    this.tweens.add({
-      targets: this.hintArrow,
-      y: this.hintArrow.y - 20,
-      duration: 800,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut"
-    })
-
-    console.log(this.foundations);
-    console.log(this.deck)
-    console.log("Show hint card: ", hintCard);
-    console.log("Show hint found: ", hintFoundation);
-  }
 }
 
 
