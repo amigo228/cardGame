@@ -10,6 +10,7 @@ export class GameScene extends Phaser.Scene {
   preload() {
     //bg load
     this.load.image('bg', 'assets/bg_gameplay.jpg');
+    this.load.image('arrow-curved-icon', 'assets/curved-arrow-icon.svg')
 
     this.load.atlas('common1', 'assets/spritesheets/common1.png', 'assets/spritesheets/common1.json');
     this.load.image('card_bg', 'assets/cards/card_bg2.png');

@@ -223,8 +223,8 @@ export function registerDragHandlers(scene) {
 
 export function renderFoundation(scene) {
   const fStartX = 500;
-  const fStartY = 900;
-  const gap = 180;
+  const fStartY = 920;
+  const gap = 160;
 
   const suits = ['h', 'd', 'c', 's'];
 
@@ -257,7 +257,7 @@ export function renderFoundation(scene) {
     }
 
     if (king) {
-      const x = fStartX + (suits.length + i) * gap;
+      const x = fStartX + (suits.length + i) * gap + 200;
       placeCard(king, x, fStartY);
 
       foundations.push({

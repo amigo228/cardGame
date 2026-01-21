@@ -9,6 +9,7 @@ export class Hud {
         this.scene.add.image(210, this.scene.scale.height / 2, 'common1', 'gameplay_panel_bg').setScale(1.5)
             .setDepth(2);
         this.setupHudButtons();
+        this.setupFoundationHud();
     }
 
     setupHudButtons() {
@@ -44,7 +45,7 @@ export class Hud {
         const x = 307;
         const y = 153;
         this.scene.add.image(x, y, 'common1', 'undo_icon').setScale(1.5)
-        .setDepth(5);
+            .setDepth(5);
         const returnBtn = this.locateButtonBackground(x, y);
     }
 
@@ -52,7 +53,7 @@ export class Hud {
         const x = 120;
         const y = 153;
         this.scene.add.image(x, y, 'common1', 'options_mini').setScale(1.5)
-        .setDepth(5);
+            .setDepth(5);
         const settingsBtn = this.locateButtonBackground(x, y);
     }
 
@@ -60,7 +61,7 @@ export class Hud {
         const x = 120;
         const y = 266;
         this.scene.add.image(x, y, 'common1', 'money_ico_btn').setScale(1.5)
-        .setDepth(5);
+            .setDepth(5);
         const gemsBtn = this.locateButtonBackground(x, y + 8);
     }
 
@@ -72,5 +73,30 @@ export class Hud {
         btn.on('pointerout', () => btn.setFrame('but_gp1_1'));
 
         return btn;
+    }
+
+    //foundation hud part
+
+    setupFoundationHud() {
+        const border = this.scene.add.graphics();
+
+        border.lineStyle(4, 0xffffff, 1);
+        border.strokeRoundedRect(
+            410,
+            800,
+            1500,
+            240,
+            16
+        ).setDepth(1000);
+
+        border.lineStyle(3, 0xffffff, 0.8);
+        border.beginPath();
+        border.moveTo(1160, 800);
+        border.lineTo(1160, 1040);
+        border.strokePath();
+        const leftArrow = this.scene.add.image(1105, 920, 'arrow-curved-icon').setDepth(10000).setAngle(-90).setScale(0.6).setFlipX(true);
+        const rightArrow = this.scene.add.image(1215, 920, 'arrow-curved-icon').setDepth(10000).setAngle(90).setScale(0.6).setFlipX(true);
+
+        this.scene.tweens.add({targets: [leftArrow, rightArrow], scale: 0.64, duration: 900, yoyo: true, repeat: -1});
     }
 }
