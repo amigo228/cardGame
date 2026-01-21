@@ -50,21 +50,33 @@ export class Hint {
             return;
         }
 
+        const cardAngle = this.hintCard.container.angle || 0;
+        let offsetX = 0;
+
+        if (cardAngle < -5) offsetX = 15;
+        else if (cardAngle < -2) offsetX = 10;
+        else if (cardAngle < 2) offsetX = 0;
+        else if (cardAngle < 5) offsetX = -10;
+        else offsetX = -15;
+
+        const centerX = this.hintCard.container.x + offsetX;
+
         this.drawArrow(
-            this.hintCard.startX,
-            this.hintCard.startY + 140
+            centerX,
+            this.hintCard.startY + 140,
+            cardAngle + 90
         );
     }
 
     drawArrow(x, y, angle = 90, currentCard = null) {
-        if(currentCard && currentCard !== this.hintCard) {
+        if (currentCard && currentCard !== this.hintCard) {
             return;
         }
         this.hintArrow = this.scene.add
             .image(x, y, 'common1', 'tutorial_arrow')
             .setAngle(angle)
             .setScale(1.7)
-            .setDepth(100000);
+            .setDepth(5000);
 
         this.scene.tweens.add({ targets: this.hintArrow, y: this.hintArrow.y - 20, duration: 800, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     }

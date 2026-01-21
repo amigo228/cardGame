@@ -15,11 +15,11 @@ export default class Card {
         this.bg = this.scene.add.image(0, 0, 'card_bg').setScale(1);
         this.container.add(this.bg);
 
-        if (this.rank === 1 || this.rank > 10){
+        if (this.rank === 1 || this.rank > 10) {
             this.extraImg = this.scene.add.image(-25, -43, this.key + 'l');
             this.container.add(this.extraImg);
         }
-        
+
         this.rankImg = this.scene.add.image(0, 0, this.key).setScale(1);
         this.container.add(this.rankImg);
         this.suitImg = this.scene.add.image(25, -43, this.suit).setScale(0.9);
@@ -38,4 +38,52 @@ export default class Card {
     destroy() {
         this.container.destroy();
     }
+
+
+    updateFace(newRank, newSuit, newColor, show = true) {
+
+        this.rank = newRank;
+        this.suit = newSuit;
+        this.color = newColor;
+        this.key = `card_${this.rank}${this.color}`;
+
+        if (this.rankImg && !this.rankImg.destroyed) {
+            this.rankImg.setTexture(this.key);
+            this.rankImg.setVisible(Boolean(show));
+        } else {
+            this.rankImg = this.scene.add.image(0, 0, this.key).setScale(1);
+            this.rankImg.setVisible(Boolean(show));
+            this.container.add(this.rankImg);
+        }
+
+        if (this.suitImg && !this.suitImg.destroyed) {
+            this.suitImg.setTexture(this.suit);
+            this.suitImg.setVisible(Boolean(show));
+        } else {
+            this.suitImg = this.scene.add.image(25, -43, this.suit).setScale(0.9);
+            this.suitImg.setVisible(Boolean(show));
+            this.container.add(this.suitImg);
+        }
+
+        if (this.rank === 1 || this.rank > 10) {
+            const extraKey = this.key + 'l';
+            if (this.extraImg && !this.extraImg.destroyed) {
+                this.extraImg.setTexture(extraKey);
+                this.extraImg.setVisible(Boolean(show));
+            } else {
+                this.extraImg = this.scene.add.image(-25, -43, extraKey);
+                this.extraImg.setVisible(Boolean(show));
+                this.container.addAt(this.extraImg, 1);
+            }
+        } else {
+            if (this.extraImg && !this.extraImg.destroyed) {
+                this.extraImg.destroy();
+                this.extraImg = null;
+            }
+        }
+
+        this.key = `card_${this.rank}${this.color}`;
+    }
+
+
 }
