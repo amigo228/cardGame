@@ -33,49 +33,49 @@ export function isCardValid(foundation, card) {
 export function renderDeck(scene, deck) {
   const centerX = 1160;
   const startY = 200;
-  
+
   const rows = [
     { count: 10, y: startY, gap: 145, arc: 60 },
-    { count: 6, y: startY + 260, gap: 145, arc: 22 } 
+    { count: 6, y: startY + 260, gap: 145, arc: 22 }
   ];
-  
+
   const totalStacks = rows[0].count + rows[1].count;
   scene.tableau = Array.from({ length: totalStacks }, () => []);
-  
+
   deck.forEach((card, i) => {
     scene.tableau[i % totalStacks].push(card);
   });
-  
+
   const stackPositions = [];
-  
+
   for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
     const row = rows[rowIdx];
     const rowWidth = (row.count - 1) * row.gap;
     const rowStartX = centerX - rowWidth / 2;
-    
+
     const center = (row.count - 1) / 2;
     const maxOffset = Math.floor(row.count / 2);
-    
+
     for (let col = 0; col < row.count; col++) {
       const x = rowStartX + col * row.gap;
-      
+
       let offsetFromCenter = Math.abs(col - center);
       let normalizedHeight;
-      
+
       if (row.count === 6) {
-        normalizedHeight = offsetFromCenter / 2.5; 
+        normalizedHeight = offsetFromCenter / 2.5;
       } else {
         normalizedHeight = offsetFromCenter / maxOffset;
       }
-      
+
       normalizedHeight = Math.min(normalizedHeight, 1);
-      
+
       const y = row.y + (normalizedHeight * normalizedHeight) * row.arc;
-      
+
       const angleOffset = (col - center) / center;
       const maxAngle = rowIdx === 0 ? 8 : 6;
       const angle = angleOffset * maxAngle;
-      
+
       stackPositions.push({
         x: Math.round(x),
         y: Math.round(y),
@@ -83,20 +83,20 @@ export function renderDeck(scene, deck) {
       });
     }
   }
-  
+
   for (let stackIdx = 0; stackIdx < totalStacks; stackIdx++) {
     const stack = scene.tableau[stackIdx];
     const pos = stackPositions[stackIdx];
-    
+
     stack.forEach((card, cardIdx) => {
       const y = pos.y + cardIdx * -4;
-      
+
       card.setPosition(pos.x, y);
       card.startX = pos.x;
       card.startY = y;
       card.container.setAngle(pos.angle);
       card.originalAngle = pos.angle;
-      
+
       const depth = stackIdx * 100 + (cardIdx + 1);
       card.originalDepth = depth;
       card.container.setDepth(depth);
@@ -107,7 +107,7 @@ export function renderDeck(scene, deck) {
 export function registerDragHandlers(scene) {
   scene.input.on('dragstart', (pointer, gameObject) => {
     const currentCard = scene.deck.find(c => c.container === gameObject);
-    if (!currentCard) return;
+    if (!currentCard) { return; }
 
     const stackIndex = scene.tableau.findIndex(stack => stack.includes(currentCard));
     if (stackIndex === -1) return;
@@ -123,16 +123,16 @@ export function registerDragHandlers(scene) {
     gameObject.setInteractive();
     gameObject.setDepth(scene.topDepth);
 
-    if (!isCardValid(scene.foundations, currentCard)) {
-      gameObject.disableInteractive();
+    // if (!isCardValid(scene.foundations, currentCard)) {
+    //   gameObject.disableInteractive();
 
-      playInvalidCardAnimation(scene, gameObject, () => {
-        gameObject.setInteractive({ draggable: true });
-      });
+    //   playInvalidCardAnimation(scene, gameObject, () => {
+    //     gameObject.setInteractive({ draggable: true });
+    //   });
 
-      gameObject.setDepth(currentCard.originalDepth);
-      return;
-    }
+    //   gameObject.setDepth(currentCard.originalDepth);
+    //   return;
+    // }
     currentCard.container.setAngle(0);
     currentCard.originalScale = currentCard.container.scaleX;
     currentCard.container.setScale(currentCard.originalScale * 1.05);
@@ -170,8 +170,8 @@ export function registerDragHandlers(scene) {
       const dx = gameObject.x - f.x;
       const dy = gameObject.y - f.y;
 
-      const thresholdX = 40;
-      const thresholdY = 60;
+      const thresholdX = 100;
+      const thresholdY = 100;
 
       if (Math.abs(dx) < thresholdX && Math.abs(dy) < thresholdY) {
         const topCard = f.cards[f.cards.length - 1];
@@ -191,8 +191,10 @@ export function registerDragHandlers(scene) {
               break;
             }
           }
-
-          currentCard.container.disableInteractive();
+          currentCard.container.input.draggable = false;
+          currentCard.container.on('pointerdown', () => {
+            playInvalidCardAnimation(scene, currentCard.container);
+          });
           placed = true;
         }
       }
@@ -233,7 +235,11 @@ export function renderFoundation(scene) {
 
   const placeCard = (card, x, y) => {
     card.setPosition(x, y);
-    card.container.disableInteractive();
+    
+    card.container.input.draggable = false;
+    card.container.on('pointerdown', () => {
+      playInvalidCardAnimation(scene, card.container);
+    });
     card.container.setDepth(200);
   };
 

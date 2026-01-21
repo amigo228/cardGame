@@ -1,5 +1,5 @@
 import { GameScene } from './scenes/GameScene.js';
-
+import {PreloadScene} from './scenes/preloadScene.js';
 const config = {
     type: Phaser.AUTO,
     title: 'Overlord Rising',
@@ -7,10 +7,10 @@ const config = {
     parent: 'game-container',
     width: 1920,
     height: 1080,
-    backgroundColor: 0x228B22,
+    backgroundColor: 0x000000,
     pixelArt: false,
     scene: [
-        GameScene
+        PreloadScene, GameScene
     ],
     scale: {
         mode: Phaser.Scale.FIT,
