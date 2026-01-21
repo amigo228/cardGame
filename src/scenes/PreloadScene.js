@@ -1,6 +1,11 @@
+// "Every great game begins with a single scene. Let's make this one unforgettable!"
 export class PreloadScene extends Phaser.Scene {
     constructor() {
-        super({ key: 'PreloadScene' });
+        super('PreloadScene');
+    }
+
+    init() {
+        // Initialize scene
     }
 
     preload() {
@@ -36,7 +41,7 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     create() {
-        const options = this.add.image(
+         const options = this.add.image(
             this.cameras.main.width / 2,
             this.cameras.main.height / 2,
             'common1',
