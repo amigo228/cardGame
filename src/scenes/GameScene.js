@@ -1,4 +1,4 @@
-import { createDeck, renderDeck, registerDragHandlers, renderFoundation } from '../utils.js';
+import { createDeck, renderDeck, registerDragHandlers, renderFoundation, createSpark } from '../utils.js';
 import { Hint } from '../hint.js';
 import { Hud } from '../hud.js';
 export class GameScene extends Phaser.Scene {
@@ -8,10 +8,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    
   }
 
   create() {
+
+    createSpark(this);
+    this.returnStack = [];
     this.deck = createDeck(this);
     this.hud = new Hud(this, this.reloadDeck.bind(this));
     this.hint = new Hint(this);

@@ -1,5 +1,7 @@
 import Card from './card.js';
 import { playInvalidCardAnimation } from './invalidCardAnimation.js';
+import { playRewardGemAnimation } from './rewardGemAnimation.js';
+
 export function createDeck(scene) {
   const suits = ['c', 'd', 'h', 's'];
   const ranks = Array.from({ length: 13 }, (_, i) => i + 1);
@@ -31,83 +33,104 @@ export function isCardValid(foundation, card) {
 }
 
 export function renderDeck(scene, deck) {
-  const centerX = 1160;
-  const startY = 200;
+    const centerX = 1160;
+    const startY = 200;
 
-  const rows = [
-    { count: 10, y: startY, gap: 145, arc: 60 },
-    { count: 6, y: startY + 260, gap: 145, arc: 22 }
-  ];
+    const rows = [
+        { count: 10, y: startY, gap: 145, arc: 60 },
+        { count: 6, y: startY + 260, gap: 145, arc: 22 }
+    ];
 
-  const totalStacks = rows[0].count + rows[1].count;
-  scene.tableau = Array.from({ length: totalStacks }, () => []);
+    const totalStacks = rows[0].count + rows[1].count;
+    scene.tableau = Array.from({ length: totalStacks }, () => []);
 
-  deck.forEach((card, i) => {
-    scene.tableau[i % totalStacks].push(card);
-  });
-
-  const stackPositions = [];
-
-  for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
-    const row = rows[rowIdx];
-    const rowWidth = (row.count - 1) * row.gap;
-    const rowStartX = centerX - rowWidth / 2;
-
-    const center = (row.count - 1) / 2;
-    const maxOffset = Math.floor(row.count / 2);
-
-    for (let col = 0; col < row.count; col++) {
-      const x = rowStartX + col * row.gap;
-
-      let offsetFromCenter = Math.abs(col - center);
-      let normalizedHeight;
-
-      if (row.count === 6) {
-        normalizedHeight = offsetFromCenter / 2.5;
-      } else {
-        normalizedHeight = offsetFromCenter / maxOffset;
-      }
-
-      normalizedHeight = Math.min(normalizedHeight, 1);
-
-      const y = row.y + (normalizedHeight * normalizedHeight) * row.arc;
-
-      const angleOffset = (col - center) / center;
-      const maxAngle = rowIdx === 0 ? 8 : 6;
-      const angle = angleOffset * maxAngle;
-
-      stackPositions.push({
-        x: Math.round(x),
-        y: Math.round(y),
-        angle: angle
-      });
-    }
-  }
-
-  for (let stackIdx = 0; stackIdx < totalStacks; stackIdx++) {
-    const stack = scene.tableau[stackIdx];
-    const pos = stackPositions[stackIdx];
-
-    stack.forEach((card, cardIdx) => {
-      const y = pos.y + cardIdx * -4;
-
-      card.setPosition(pos.x, y);
-      card.startX = pos.x;
-      card.startY = y;
-      card.container.setAngle(pos.angle);
-      card.originalAngle = pos.angle;
-
-      const depth = stackIdx * 100 + (cardIdx + 1);
-      card.originalDepth = depth;
-      card.container.setDepth(depth);
+    deck.forEach((card, i) => {
+        scene.tableau[i % totalStacks].push(card);
     });
-  }
+
+    const stackPositions = [];
+
+    for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+        const row = rows[rowIdx];
+        const rowWidth = (row.count - 1) * row.gap;
+        const rowStartX = centerX - rowWidth / 2;
+
+        const center = (row.count - 1) / 2;
+        const maxOffset = Math.floor(row.count / 2);
+
+        for (let col = 0; col < row.count; col++) {
+            const x = rowStartX + col * row.gap;
+
+            let offsetFromCenter = Math.abs(col - center);
+            let normalizedHeight;
+
+            if (row.count === 6) {
+                normalizedHeight = offsetFromCenter / 2.5;
+            } else {
+                normalizedHeight = offsetFromCenter / maxOffset;
+            }
+
+            normalizedHeight = Math.min(normalizedHeight, 1);
+
+            const y = row.y + (normalizedHeight * normalizedHeight) * row.arc;
+
+            const angleOffset = (col - center) / center;
+            const maxAngle = rowIdx === 0 ? 8 : 6;
+            const angle = angleOffset * maxAngle;
+
+            stackPositions.push({
+                x: Math.round(x),
+                y: Math.round(y),
+                angle: angle
+            });
+        }
+    }
+
+    for (let stackIdx = 0; stackIdx < totalStacks; stackIdx++) {
+        const stack = scene.tableau[stackIdx];
+        const pos = stackPositions[stackIdx];
+
+        stack.forEach((card, cardIdx) => {
+            const y = pos.y + cardIdx * -4;
+            const startX = centerX;
+            const startY = -100; 
+            const startAngle = 0;
+
+            card.setPosition(startX, startY);
+            card.startX = pos.x;
+            card.startY = y;
+            card.container.setAngle(startAngle);
+            card.originalAngle = pos.angle;
+
+            const depth = stackIdx * 100 + (cardIdx + 1);
+            card.originalDepth = depth;
+            card.container.setDepth(depth);
+
+            // твин анимация
+            scene.tweens.add({
+                targets: card.container,
+                x: pos.x,
+                y: y,
+                angle: pos.angle,
+                alpha: { from: 0.5, to: 1 },
+                ease: 'Sine.easeOut',
+                duration: 600 + Math.random() * 300, 
+                delay: cardIdx * 50 + stackIdx * 30
+            });
+        });
+    }
 }
+
 
 export function registerDragHandlers(scene) {
   scene.input.on('dragstart', (pointer, gameObject) => {
     const currentCard = scene.deck.find(c => c.container === gameObject);
     if (!currentCard) { return; }
+
+    currentCard.emitter.emitting = true;
+    currentCard.prevX = currentCard.container.x;
+    currentCard.prevY = currentCard.container.y;
+
 
     const stackIndex = scene.tableau.findIndex(stack => stack.includes(currentCard));
     if (stackIndex === -1) return;
@@ -122,17 +145,6 @@ export function registerDragHandlers(scene) {
 
     gameObject.setInteractive();
     gameObject.setDepth(scene.topDepth);
-
-    // if (!isCardValid(scene.foundations, currentCard)) {
-    //   gameObject.disableInteractive();
-
-    //   playInvalidCardAnimation(scene, gameObject, () => {
-    //     gameObject.setInteractive({ draggable: true });
-    //   });
-
-    //   gameObject.setDepth(currentCard.originalDepth);
-    //   return;
-    // }
     currentCard.container.setAngle(0);
     currentCard.originalScale = currentCard.container.scaleX;
     currentCard.container.setScale(currentCard.originalScale * 1.05);
@@ -157,12 +169,18 @@ export function registerDragHandlers(scene) {
   scene.input.on('drag', (pointer, gameObject, dragX, dragY) => {
     gameObject.x = dragX;
     gameObject.y = dragY;
+    const currentCard = scene.deck.find(c => c.container === gameObject);
+    if (!currentCard) return;
+
+    currentCard.prevX = currentCard.container.x;
+    currentCard.prevY = currentCard.container.y;
   });
 
   scene.input.on('dragend', (pointer, gameObject) => {
     const currentCard = scene.deck.find(c => c.container === gameObject);
     if (!currentCard) return;
 
+    currentCard.emitter.emitting = false;
     currentCard.container.setScale(currentCard.originalScale);
     let placed = false;
 
@@ -177,7 +195,8 @@ export function registerDragHandlers(scene) {
         const topCard = f.cards[f.cards.length - 1];
         if ((f.type === 'asc' && currentCard.suit === topCard.suit && currentCard.rank === topCard.rank + 1) ||
           (f.type === 'desc' && currentCard.suit === topCard.suit && currentCard.rank === topCard.rank - 1)) {
-
+          scene.returnStack.push(currentCard);
+          scene.hud?.updateReturnButton();
           currentCard.container.x = f.x;
           currentCard.container.y = f.y;
           currentCard.container.setDepth(200 + f.cards.length + 1);
@@ -191,10 +210,50 @@ export function registerDragHandlers(scene) {
               break;
             }
           }
+
+          const emitter = scene.add.particles(f.x, f.y, 'spark', {
+            lifespan: 380, 
+            quantity: 30, 
+            blendMode: 'ADD',
+            angle: { min: 0, max: 360 },
+            speed: { min: 400, max: 600 }, 
+            scale: { start: 2, end: 0.2 }, 
+            alpha: { start: 1, end: 0.3 }, 
+            tint: [0xffff00, 0xffaa00, 0xff5500],
+            gravityY: -250, 
+            frequency: -1,
+            emitZone: {
+              type: 'random',
+              source: new Phaser.Geom.Circle(0, 0, 50) 
+            }
+          });
+
+          emitter.setDepth(100000);
+  
+          scene.time.delayedCall(10, () => {
+            emitter.explode(25); 
+          });
+
+          scene.time.delayedCall(20, () => {
+            emitter.explode(15);
+          });
+
+          scene.time.delayedCall(30, () => {
+            emitter.explode(10);
+          });
+
+          scene.time.delayedCall(400, () => {
+            emitter.destroy();
+          });
+
+          playRewardGemAnimation(scene, currentCard.container.x, currentCard.container.y);
+
           currentCard.container.input.draggable = false;
           currentCard.container.on('pointerdown', () => {
             playInvalidCardAnimation(scene, currentCard.container);
           });
+
+          // add to return back stack
           placed = true;
         }
       }
@@ -235,7 +294,7 @@ export function renderFoundation(scene) {
 
   const placeCard = (card, x, y) => {
     card.setPosition(x, y);
-    
+
     card.container.input.draggable = false;
     card.container.on('pointerdown', () => {
       playInvalidCardAnimation(scene, card.container);
@@ -282,4 +341,49 @@ export function renderFoundation(scene) {
 
   scene.foundations = foundations;
 }
+
+export function createSpark(scene) {
+  const size = 32;
+  const graphics = scene.add.graphics();
+
+  const spikes = 5;
+  const outerRadius = size / 2;
+  const innerRadius = outerRadius * 0.4;
+  
+  graphics.fillStyle(0xFFFFFF, 1);
+  graphics.lineStyle(2, 0xFFFF00, 1);
+  
+  let x = size / 2;
+  let y = size / 2;
+  
+  let rot = Math.PI / 2 * 3;
+  let step = Math.PI / spikes;
+  
+  graphics.beginPath();
+  graphics.moveTo(x, y - outerRadius);
+  
+  for (let i = 0; i < spikes; i++) {
+    x = size / 2 + Math.cos(rot) * outerRadius;
+    y = size / 2 + Math.sin(rot) * outerRadius;
+    graphics.lineTo(x, y);
+    rot += step;
+    
+    x = size / 2 + Math.cos(rot) * innerRadius;
+    y = size / 2 + Math.sin(rot) * innerRadius;
+    graphics.lineTo(x, y);
+    rot += step;
+  }
+  
+  graphics.lineTo(size / 2, size / 2 - outerRadius);
+  graphics.closePath();
+  graphics.fillPath();
+  graphics.strokePath();
+  
+  graphics.fillStyle(0xFFFF00, 0.3);
+  graphics.fillCircle(size / 2, size / 2, outerRadius * 1.2);
+  
+  graphics.generateTexture('spark', size, size);
+  graphics.destroy();
+}
+
 

@@ -1,3 +1,5 @@
+import { returnCardAnimation } from './returnCardAnimation.js';
+
 export class Hud {
     constructor(scene, onShuffle) {
         this.scene = scene;
@@ -17,6 +19,9 @@ export class Hud {
         this.setupReturnButton();
         this.setupSettingsButton();
         this.setupGemsButton();
+        //setup boosters
+        this.setupJokerButton();
+        this.setupMagicButton();
     }
 
     setupShuffleButton() {
@@ -29,6 +34,8 @@ export class Hud {
             shuffleBtn.setFrame('but_gp1_1');
             shuffleBtn.disableInteractive();
             this.onShuffle();
+            this.scene.returnStack.length = 0;
+            this.scene.hud?.updateReturnButton();
             this.scene.time.delayedCall(1200, () => {
                 shuffleBtn.setInteractive();
                 const pointer = this.scene.input.activePointer;
@@ -44,9 +51,38 @@ export class Hud {
     setupReturnButton() {
         const x = 307;
         const y = 153;
-        this.scene.add.image(x, y, 'common1', 'undo_icon').setScale(1.5)
+
+        this.returnIcon = this.scene.add.image(x - 3, y-2, 'common1', 'but_undo_gray')
+            .setScale(1.5)
+            .setDepth(6);
+
+        this.scene.add.image(x, y, 'common1', 'undo_icon')
+            .setScale(1.5)
             .setDepth(5);
-        const returnBtn = this.locateButtonBackground(x, y);
+
+        this.returnBtn = this.locateButtonBackground(x, y);
+
+        this.returnBtn.on('pointerdown', () => {
+            if (!this.scene.returnStack.length) return;
+            returnCardAnimation(this.scene, this.scene.returnStack);
+            this.updateReturnButton();
+        });
+
+        this.updateReturnButton();
+    }
+
+    updateReturnButton() {
+        const hasCards = this.scene.returnStack.length > 0;
+
+        if (hasCards) {
+            this.returnIcon.setFrame('undo_icon'); 
+            this.returnBtn.setInteractive();
+            this.returnBtn.setAlpha(1);
+        } else {
+            this.returnIcon.setFrame('but_undo_gray'); 
+            this.returnBtn.disableInteractive();
+            this.returnBtn.setAlpha(1);
+        }
     }
 
     setupSettingsButton() {
@@ -75,6 +111,22 @@ export class Hud {
         return btn;
     }
 
+    setupJokerButton() {
+        const joker = this.scene.add.image(120, 970, 'common1', 'b_joker_out').setScale(1.5).setDepth(3).setInteractive();
+        joker.on("pointerdown", () => {
+            joker.setFrame('b_joker_gray_out');
+            // play animation
+        })
+    }
+
+    setupMagicButton() {
+        const magic = this.scene.add.image(300, 970, 'common1', 'b_magic_out').setScale(1.5).setDepth(3).setInteractive();
+        magic.on("pointerdown", () => {
+            magic.setFrame('b_magic_gray_out');
+            // play animation
+        })
+    }
+
     //foundation hud part
 
     setupFoundationHud() {
@@ -97,6 +149,6 @@ export class Hud {
         const leftArrow = this.scene.add.image(1105, 920, 'arrow-curved-icon').setDepth(11).setAngle(-90).setScale(0.6).setFlipX(true);
         const rightArrow = this.scene.add.image(1215, 920, 'arrow-curved-icon').setDepth(11).setAngle(90).setScale(0.6).setFlipX(true);
 
-        this.scene.tweens.add({targets: [leftArrow, rightArrow], scale: 0.64, duration: 900, yoyo: true, repeat: -1});
+        this.scene.tweens.add({ targets: [leftArrow, rightArrow], scale: 0.64, duration: 900, yoyo: true, repeat: -1 });
     }
 }
