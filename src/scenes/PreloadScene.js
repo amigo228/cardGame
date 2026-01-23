@@ -10,9 +10,10 @@ export class PreloadScene extends Phaser.Scene {
 
     preload() {
         this.cameras.main.setBackgroundColor('#000000');
-
+        this.load.image('player_icon', 'assets/player_icon.jpg');
         this.load.image('bg', 'assets/bg_gameplay.jpg');
-        this.load.image('arrow-curved-icon', 'assets/curved-arrow-icon.svg')
+        this.load.image('arrow-curved-icon', 'assets/curved-arrow-icon.svg');
+        this.load.image('map1', 'assets/maps/map1.jpg');
 
         this.load.atlas('common1', 'assets/spritesheets/common1.png', 'assets/spritesheets/common1.json');
         this.load.image('card_bg', 'assets/cards/card_bg2.png');
@@ -56,7 +57,7 @@ export class PreloadScene extends Phaser.Scene {
             ease: 'Linear'
         });
         this.time.delayedCall(2000, () => {
-            this.scene.start('GameScene');
+            this.scene.start('MapScene');
         });
     }
 

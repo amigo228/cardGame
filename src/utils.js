@@ -1,6 +1,8 @@
 import Card from './card.js';
 import { playInvalidCardAnimation } from './invalidCardAnimation.js';
 import { playRewardGemAnimation } from './rewardGemAnimation.js';
+import {gameWon} from './gameWon.js';
+
 
 export function createDeck(scene) {
   const suits = ['c', 'd', 'h', 's'];
@@ -32,10 +34,9 @@ export function isCardValid(foundation, card) {
   return false;
 }
 
-export function renderDeck(scene, deck) {
+export async function renderDeck(scene, deck) {
     const centerX = 1160;
     const startY = 200;
-
     const rows = [
         { count: 10, y: startY, gap: 145, arc: 60 },
         { count: 6, y: startY + 260, gap: 145, arc: 22 }
@@ -81,44 +82,64 @@ export function renderDeck(scene, deck) {
             stackPositions.push({
                 x: Math.round(x),
                 y: Math.round(y),
-                angle: angle
+                angle
             });
         }
     }
+    scene.input.enabled = false;
 
-    for (let stackIdx = 0; stackIdx < totalStacks; stackIdx++) {
-        const stack = scene.tableau[stackIdx];
-        const pos = stackPositions[stackIdx];
+    await new Promise((resolve) => {
+        let flyDelay = 0;
+        const FLY_STEP = 30;
+        let totalTweens = 0;
+        let finishedTweens = 0;
 
-        stack.forEach((card, cardIdx) => {
-            const y = pos.y + cardIdx * -4;
-            const startX = centerX;
-            const startY = -100; 
-            const startAngle = 0;
+        for (let stackIdx = 0; stackIdx < totalStacks; stackIdx++) {
+            totalTweens += scene.tableau[stackIdx].length;
+        }
 
-            card.setPosition(startX, startY);
-            card.startX = pos.x;
-            card.startY = y;
-            card.container.setAngle(startAngle);
-            card.originalAngle = pos.angle;
+        for (let stackIdx = 0; stackIdx < totalStacks; stackIdx++) {
+            const stack = scene.tableau[stackIdx];
+            const pos = stackPositions[stackIdx];
 
-            const depth = stackIdx * 100 + (cardIdx + 1);
-            card.originalDepth = depth;
-            card.container.setDepth(depth);
+            stack.forEach((card, cardIdx) => {
+                const y = pos.y + cardIdx * -4;
 
-            // твин анимация
-            scene.tweens.add({
-                targets: card.container,
-                x: pos.x,
-                y: y,
-                angle: pos.angle,
-                alpha: { from: 0.5, to: 1 },
-                ease: 'Sine.easeOut',
-                duration: 600 + Math.random() * 300, 
-                delay: cardIdx * 50 + stackIdx * 30
+                card.setPosition(centerX, -100);
+                card.startX = pos.x;
+                card.startY = y;
+
+                card.container.setAngle(0);
+                card.originalAngle = pos.angle;
+                card.originIndex = cardIdx;
+                card.originStackIndex = stackIdx;
+                const depth = stackIdx * 100 + (cardIdx + 1);
+                card.originalDepth = depth;
+                card.container.setDepth(depth);
+
+                scene.tweens.add({
+                    targets: card.container,
+                    x: pos.x,
+                    y: y,
+                    angle: pos.angle,
+                    alpha: { from: 0.7, to: 1 },
+                    ease: 'Sine.easeOut',
+                    duration: 150,
+                    delay: flyDelay,
+                    onComplete: () => {
+                        finishedTweens++;
+                        if (finishedTweens === totalTweens) {
+                            resolve();
+                        }
+                    }
+                });
+
+                flyDelay += FLY_STEP;
             });
-        });
-    }
+        }
+    });
+
+    scene.input.enabled = true;
 }
 
 
@@ -126,11 +147,6 @@ export function registerDragHandlers(scene) {
   scene.input.on('dragstart', (pointer, gameObject) => {
     const currentCard = scene.deck.find(c => c.container === gameObject);
     if (!currentCard) { return; }
-
-    currentCard.emitter.emitting = true;
-    currentCard.prevX = currentCard.container.x;
-    currentCard.prevY = currentCard.container.y;
-
 
     const stackIndex = scene.tableau.findIndex(stack => stack.includes(currentCard));
     if (stackIndex === -1) return;
@@ -148,6 +164,8 @@ export function registerDragHandlers(scene) {
     currentCard.container.setAngle(0);
     currentCard.originalScale = currentCard.container.scaleX;
     currentCard.container.setScale(currentCard.originalScale * 1.05);
+
+    attachParticlesToCard(scene, currentCard);
 
     if (scene.hint) {
       scene.hint.clear();
@@ -171,16 +189,17 @@ export function registerDragHandlers(scene) {
     gameObject.y = dragY;
     const currentCard = scene.deck.find(c => c.container === gameObject);
     if (!currentCard) return;
-
-    currentCard.prevX = currentCard.container.x;
-    currentCard.prevY = currentCard.container.y;
   });
 
   scene.input.on('dragend', (pointer, gameObject) => {
     const currentCard = scene.deck.find(c => c.container === gameObject);
     if (!currentCard) return;
 
-    currentCard.emitter.emitting = false;
+    if (currentCard && currentCard.suitParticles) {
+      currentCard.suitParticles.destroy();
+      currentCard.suitParticles = null;
+    }
+
     currentCard.container.setScale(currentCard.originalScale);
     let placed = false;
 
@@ -210,42 +229,7 @@ export function registerDragHandlers(scene) {
               break;
             }
           }
-
-          const emitter = scene.add.particles(f.x, f.y, 'spark', {
-            lifespan: 380, 
-            quantity: 30, 
-            blendMode: 'ADD',
-            angle: { min: 0, max: 360 },
-            speed: { min: 400, max: 600 }, 
-            scale: { start: 2, end: 0.2 }, 
-            alpha: { start: 1, end: 0.3 }, 
-            tint: [0xffff00, 0xffaa00, 0xff5500],
-            gravityY: -250, 
-            frequency: -1,
-            emitZone: {
-              type: 'random',
-              source: new Phaser.Geom.Circle(0, 0, 50) 
-            }
-          });
-
-          emitter.setDepth(100000);
-  
-          scene.time.delayedCall(10, () => {
-            emitter.explode(25); 
-          });
-
-          scene.time.delayedCall(20, () => {
-            emitter.explode(15);
-          });
-
-          scene.time.delayedCall(30, () => {
-            emitter.explode(10);
-          });
-
-          scene.time.delayedCall(400, () => {
-            emitter.destroy();
-          });
-
+          
           playRewardGemAnimation(scene, currentCard.container.x, currentCard.container.y);
 
           currentCard.container.input.draggable = false;
@@ -255,6 +239,8 @@ export function registerDragHandlers(scene) {
 
           // add to return back stack
           placed = true;
+
+          gameWon(scene);
         }
       }
     }
@@ -379,11 +365,25 @@ export function createSpark(scene) {
   graphics.fillPath();
   graphics.strokePath();
   
-  graphics.fillStyle(0xFFFF00, 0.3);
-  graphics.fillCircle(size / 2, size / 2, outerRadius * 1.2);
+
   
   graphics.generateTexture('spark', size, size);
   graphics.destroy();
+}
+
+function attachParticlesToCard(scene, card) {
+    card.suitParticles = scene.add.particles(0, 0, card.suit, {
+        lifespan: 800,               
+        speed: { min: 100, max: 200 },    
+        angle: { min: 0, max: 360 },      
+        gravityY: 200,                    
+        scale: { start: 3, end: 0 },      
+        alpha: { start: 1, end: 0 },       
+        frequency: 100,                     
+        quantity: 1,                       
+        follow: card.container,             
+        followOffset: { x: 35, y: -70 },
+    }).setDepth(card.container.depth + 1);
 }
 
 

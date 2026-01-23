@@ -1,4 +1,5 @@
 import { returnCardAnimation } from './returnCardAnimation.js';
+import { playBeatCardAnimation, playBeatAllCardAnimation } from './beatCardAnimation.js';
 
 export class Hud {
     constructor(scene, onShuffle) {
@@ -52,7 +53,7 @@ export class Hud {
         const x = 307;
         const y = 153;
 
-        this.returnIcon = this.scene.add.image(x - 3, y-2, 'common1', 'but_undo_gray')
+        this.returnIcon = this.scene.add.image(x - 3, y - 2, 'common1', 'but_undo_gray')
             .setScale(1.5)
             .setDepth(6);
 
@@ -75,11 +76,11 @@ export class Hud {
         const hasCards = this.scene.returnStack.length > 0;
 
         if (hasCards) {
-            this.returnIcon.setFrame('undo_icon'); 
+            this.returnIcon.setFrame('undo_icon');
             this.returnBtn.setInteractive();
             this.returnBtn.setAlpha(1);
         } else {
-            this.returnIcon.setFrame('but_undo_gray'); 
+            this.returnIcon.setFrame('but_undo_gray');
             this.returnBtn.disableInteractive();
             this.returnBtn.setAlpha(1);
         }
@@ -114,16 +115,26 @@ export class Hud {
     setupJokerButton() {
         const joker = this.scene.add.image(120, 970, 'common1', 'b_joker_out').setScale(1.5).setDepth(3).setInteractive();
         joker.on("pointerdown", () => {
+            this.playBoosterExplosion(120, 970);
             joker.setFrame('b_joker_gray_out');
-            // play animation
+            joker.disableInteractive();
+            playBeatAllCardAnimation(this.scene, {x: 120, y: 970}, () => this.playBoosterExplosion(120, 970)).then(() => {
+                joker.setFrame('b_joker_out');
+                joker.setInteractive(true);
+            });
         })
     }
 
     setupMagicButton() {
         const magic = this.scene.add.image(300, 970, 'common1', 'b_magic_out').setScale(1.5).setDepth(3).setInteractive();
         magic.on("pointerdown", () => {
+            this.playBoosterExplosion(300, 970);
             magic.setFrame('b_magic_gray_out');
-            // play animation
+            magic.disableInteractive();
+            playBeatCardAnimation(this.scene, null, {x: 300, y: 970}).then(() => {
+                magic.setFrame('b_magic_out');
+                magic.setInteractive();
+            });
         })
     }
 
@@ -150,5 +161,43 @@ export class Hud {
         const rightArrow = this.scene.add.image(1215, 920, 'arrow-curved-icon').setDepth(11).setAngle(90).setScale(0.6).setFlipX(true);
 
         this.scene.tweens.add({ targets: [leftArrow, rightArrow], scale: 0.64, duration: 900, yoyo: true, repeat: -1 });
+    }
+
+    playBoosterExplosion(x, y) {
+        const emitter = this.scene.add.particles(x, y, 'spark', {
+            lifespan: 380,
+            quantity: 30,
+            blendMode: 'ADD',
+            angle: { min: 0, max: 360 },
+            speed: { min: 400, max: 600 },
+            scale: { start: 2, end: 0.2 },
+            alpha: { start: 1, end: 0.3 },
+            tint: [0xffff00, 0xffaa00, 0xff5500],
+            gravityY: -250,
+            frequency: -1,
+            emitZone: {
+                type: 'random',
+                source: new Phaser.Geom.Circle(0, 0, 50)
+            }
+        });
+
+        emitter.setDepth(100000);
+
+        this.scene.time.delayedCall(10, () => {
+            emitter.explode(25);
+        });
+
+        this.scene.time.delayedCall(20, () => {
+            emitter.explode(15);
+        });
+
+        this.scene.time.delayedCall(30, () => {
+            emitter.explode(10);
+        });
+
+        this.scene.time.delayedCall(400, () => {
+            emitter.destroy();
+        });
+
     }
 }

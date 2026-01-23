@@ -29,23 +29,7 @@ export default class Card {
         this.container.setScale(1.7);
         this.prevX = this.container.x;
         this.prevY = this.container.y;
-        this.addEmitter();
     }
-
-    addEmitter() {
-    if(this.emitter) this.emitter.destroy();
-    this.emitter = this.scene.add.particles(25, -43, this.suit, {
-        lifespan: 600,
-        speed: {min: 100, max: 200},
-        scale: { start: 0.7, end: 0 },
-        angle: 260,
-        frequency: 120,
-        quantity: 1,
-        alpha: { start: 1, end: 0 },
-        emitting: false
-    });
-    this.container.add(this.emitter);
-}
 
     setPosition(x, y) {
         this.container.setPosition(x, y);
@@ -98,8 +82,8 @@ export default class Card {
         }
 
         this.key = `card_${this.rank}${this.color}`;
-        this.addEmitter();
     }
 
 
 }
+

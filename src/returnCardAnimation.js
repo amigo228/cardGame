@@ -1,3 +1,5 @@
+import {compactStack} from './compactStack.js';
+
 export function returnCardAnimation(scene, stack) {
   const cardToReturn = stack.pop();
   if (!cardToReturn) return;
@@ -67,6 +69,8 @@ export function returnCardAnimation(scene, stack) {
           scene.tableau[stackIdx].push(cardToReturn);
           inserted = true;
         }
+
+        compactStack(scene.tableau[stackIdx]);
       }
 
       if (!inserted) {
