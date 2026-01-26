@@ -6,6 +6,7 @@ export class Hud {
         this.scene = scene;
         this.onShuffle = onShuffle;
         this.init();
+        this.settingButtons = null;
     }
 
     init() {
@@ -92,6 +93,167 @@ export class Hud {
         this.scene.add.image(x, y, 'common1', 'options_mini').setScale(1.5)
             .setDepth(5);
         const settingsBtn = this.locateButtonBackground(x, y);
+        settingsBtn.on('pointerdown', () => this.renderSettingsOverlay());
+    }
+
+    renderSettingsOverlay() {
+        this.overlay = this.scene.add.rectangle(0, 0, this.scene.scale.width, this.scene.scale.height, 0x000000)
+            .setOrigin(0).setAlpha(0.5).setDepth(99999).setInteractive();
+
+        const soundButton = this.createSoundButton(this.createToggleButton({ x: 660, y: 1200 }));
+        const musicButton = this.createMusicButton(this.createToggleButton({ x: 880, y: 1200 }));
+        const languageButton = this.createLanguageButton(this.createToggleButton({ x: 1100, y: 1200 }));
+        const exitButton = this.createExitButton(this.createToggleButton({ x: 1320, y: 1200 }), [soundButton, musicButton, languageButton]);
+        this.scene.tweens.add({
+            targets: [soundButton, musicButton, languageButton, exitButton],
+            duration: 300,
+            ease: 'Linear',
+            y: (this.scene.scale.height / 2)
+        })
+
+        this.overlay.on('pointerdown', () => this.hideOverlay(this.overlay, [soundButton, musicButton, languageButton, exitButton]));
+    }
+
+    hideOverlay(overlay, buttons, onComplete) {
+        this.scene.tweens.add({
+            targets: buttons,
+            duration: 300,
+            ease: 'Linear',
+            y: 1200,
+            onComplete: () => {
+                buttons.forEach(btn => btn.destroy());
+                if (overlay) { overlay.destroy(); this.overlay = null };
+                if (onComplete) onComplete();
+            }
+        });
+    }
+
+
+    createToggleButton(positions, out, over) {
+        const container = this.scene.add.container(positions.x, positions.y);
+        const bg = this.scene.add.image(0, 0, 'common1', out ? out : 'but_options1');
+        container.add(bg);
+        container.bg = bg;
+        container.setSize(bg.width, bg.height);
+        container.setInteractive();
+
+        container.on('pointerover', () => bg.setFrame(over ? over : 'but_options2'));
+        container.on('pointerout', () => bg.setFrame(out ? out : 'but_options1'));
+        return container.setDepth(1000000);
+    }
+
+    createSoundButton(container) {
+        const fillImage = this.scene.add.image(0, 0, 'common1', 'icon_sound').setScale(0.7);
+        const clickFillImage = this.scene.add.image(0, 0, 'icon_sound_off').setScale(0.7);
+        clickFillImage.setVisible(false);
+        container.add([fillImage, clickFillImage]);
+        container.fill = fillImage;
+        container.clickFill = clickFillImage;
+        container.on('pointerdown', () => {
+            const isOn = container.fill.visible;
+            container.fill.setVisible(!isOn);
+            container.clickFill.setVisible(isOn);
+        });
+        return container.setScale(2);
+    }
+
+    createMusicButton(container) {
+        const fillImage = this.scene.add.image(0, 0, 'common1', 'icon_music').setScale(0.7);
+        const clickFillImage = this.scene.add.image(0, 0, 'icon_music_off').setScale(0.7);
+        clickFillImage.setVisible(false);
+        container.add([fillImage, clickFillImage]);
+        container.fill = fillImage;
+        container.clickFill = clickFillImage;
+        container.on('pointerdown', () => {
+            const isOn = container.fill.visible;
+            container.fill.setVisible(!isOn);
+            container.clickFill.setVisible(isOn);
+        });
+        return container.setScale(2);
+    }
+
+    createLanguageButton(container) {
+        const fillImage = this.scene.add.image(0, 0, 'common1', 'icon_en').setScale(0.7);
+        container.add(fillImage);
+        container.fill = fillImage;
+        return container.setScale(2);
+    }
+
+    createExitButton(container, buttons) {
+        const fillImage = this.scene.add.image(0, 0, 'common2', 'game_exit_icon_small').setScale(0.7);
+        container.add(fillImage);
+        container.fill = fillImage;
+
+        container.on('pointerdown', () => {
+            this.hideOverlay(null, [...buttons, container]);
+            this.overlay.off('pointerdown');
+            const exitContainer = this.scene.add.container(this.scene.scale.width / 2, 1400).setDepth(100000);
+            const exitBg = this.scene.add.image(0, 0, 'common2', 'win_bg');
+            exitContainer.add(exitBg);
+            exitContainer.setSize(exitBg.width, exitBg.height);
+            exitContainer.setInteractive();
+            const closeButton = this.createToggleButton({ x: 250, y: -248 }, 'but_out', 'but_over');
+            closeButton.add(this.scene.add.image(0, 0, 'common1', 'icon_close'));
+            exitContainer.add(closeButton);
+
+            const exitLevelButton = this.createToggleButton({ x: 0, y: 250 }, 'but_red_out', 'but_red_over');
+            exitLevelButton.add(
+                this.scene.add.text(0, -5, 'EXIT', {
+                    fontFamily: 'Arial',
+                    fontSize: '32px',
+                    color: '#000000',
+                    stroke: '#ffffff',
+                    fontStyle: 'bold',
+                    strokeThickness: 6
+                }).setOrigin(0.5)
+                    .setDepth(1)
+            )
+            exitContainer.add(exitLevelButton);
+
+            exitContainer.add(
+                this.scene.add.text(0, -130, 'DO YOU REALLY WANT TO \nQUIT THE LEVEL', {
+                    fontFamily: 'Arial',
+                    fontSize: '32px',
+                    color: '#FFFFFF',
+                    stroke: '#000000',
+                    fontStyle: 'bold',
+                    align: 'center',
+                    strokeThickness: 6
+                }).setOrigin(0.5)
+                    .setDepth(1)
+            )
+            exitContainer.add(
+                this.scene.add.image(0, 30, 'common2', 'game_exit_icon')
+            )
+
+
+            this.scene.tweens.add({
+                targets: exitContainer,
+                duration: 400,
+                ease: 'Linear',
+                y: this.scene.scale.height / 2
+            })
+
+            this.overlay.on('pointerdown', () => {
+                this.hideOverlay(this.overlay, [exitContainer]);
+            })
+
+            closeButton.on('pointerdown', () => {
+                this.hideOverlay(this.overlay, [exitContainer]);
+            })
+
+            exitLevelButton.on('pointerdown', () => {
+                this.hideOverlay(this.overlay, [exitContainer], () => {
+                    this.scene.cameras.main.fadeOut(500, 0, 0, 0);
+                    this.scene.cameras.main.once('camerafadeoutcomplete', () => {
+                        this.scene.scene.start('MapScene');
+                    });
+                });
+            })
+
+        })
+
+        return container.setScale(2);
     }
 
     setupGemsButton() {
@@ -118,7 +280,7 @@ export class Hud {
             this.playBoosterExplosion(120, 970);
             joker.setFrame('b_joker_gray_out');
             joker.disableInteractive();
-            playBeatAllCardAnimation(this.scene, {x: 120, y: 970}, () => this.playBoosterExplosion(120, 970)).then(() => {
+            playBeatAllCardAnimation(this.scene, { x: 120, y: 970 }, () => this.playBoosterExplosion(120, 970)).then(() => {
                 joker.setFrame('b_joker_out');
                 joker.setInteractive(true);
             });
@@ -131,7 +293,7 @@ export class Hud {
             this.playBoosterExplosion(300, 970);
             magic.setFrame('b_magic_gray_out');
             magic.disableInteractive();
-            playBeatCardAnimation(this.scene, null, {x: 300, y: 970}).then(() => {
+            playBeatCardAnimation(this.scene, null, { x: 300, y: 970 }).then(() => {
                 magic.setFrame('b_magic_out');
                 magic.setInteractive();
             });

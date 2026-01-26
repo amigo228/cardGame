@@ -10,6 +10,7 @@ export class MapScene extends Phaser.Scene {
     }
 
     create() {
+        this.cameras.main.fadeIn(500, 0, 0, 0);
         const bg = this.add.image(0, 0, 'map1').setOrigin(0, 0);
         bg.displayWidth = this.scale.width;
         bg.displayHeight = this.scale.height;

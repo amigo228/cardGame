@@ -14,8 +14,11 @@ export class PreloadScene extends Phaser.Scene {
         this.load.image('bg', 'assets/bg_gameplay.jpg');
         this.load.image('arrow-curved-icon', 'assets/curved-arrow-icon.svg');
         this.load.image('map1', 'assets/maps/map1.jpg');
+        this.load.image('icon_sound_off', 'assets/icon_sound_off.png');
+        this.load.image('icon_music_off', 'assets/icon_music_off.png');
 
         this.load.atlas('common1', 'assets/spritesheets/common1.png', 'assets/spritesheets/common1.json');
+        this.load.atlas('common2', 'assets/spritesheets/common2.png', 'assets/spritesheets/common2.json');
         this.load.image('card_bg', 'assets/cards/card_bg2.png');
         this.load.image('s', 'assets/cards/s.png');
         this.load.image('d', 'assets/cards/d.png');

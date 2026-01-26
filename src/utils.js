@@ -1,7 +1,7 @@
 import Card from './card.js';
 import { playInvalidCardAnimation } from './invalidCardAnimation.js';
 import { playRewardGemAnimation } from './rewardGemAnimation.js';
-import {gameWon} from './gameWon.js';
+import { gameWon } from './gameWon.js';
 
 
 export function createDeck(scene) {
@@ -35,111 +35,111 @@ export function isCardValid(foundation, card) {
 }
 
 export async function renderDeck(scene, deck) {
-    const centerX = 1160;
-    const startY = 200;
-    const rows = [
-        { count: 10, y: startY, gap: 145, arc: 60 },
-        { count: 6, y: startY + 260, gap: 145, arc: 22 }
-    ];
+  const centerX = 1160;
+  const startY = 200;
+  const rows = [
+    { count: 10, y: startY, gap: 145, arc: 60 },
+    { count: 6, y: startY + 260, gap: 145, arc: 22 }
+  ];
 
-    const totalStacks = rows[0].count + rows[1].count;
-    scene.tableau = Array.from({ length: totalStacks }, () => []);
+  const totalStacks = rows[0].count + rows[1].count;
+  scene.tableau = Array.from({ length: totalStacks }, () => []);
 
-    deck.forEach((card, i) => {
-        scene.tableau[i % totalStacks].push(card);
-    });
+  deck.forEach((card, i) => {
+    scene.tableau[i % totalStacks].push(card);
+  });
 
-    const stackPositions = [];
+  const stackPositions = [];
 
-    for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
-        const row = rows[rowIdx];
-        const rowWidth = (row.count - 1) * row.gap;
-        const rowStartX = centerX - rowWidth / 2;
+  for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+    const row = rows[rowIdx];
+    const rowWidth = (row.count - 1) * row.gap;
+    const rowStartX = centerX - rowWidth / 2;
 
-        const center = (row.count - 1) / 2;
-        const maxOffset = Math.floor(row.count / 2);
+    const center = (row.count - 1) / 2;
+    const maxOffset = Math.floor(row.count / 2);
 
-        for (let col = 0; col < row.count; col++) {
-            const x = rowStartX + col * row.gap;
+    for (let col = 0; col < row.count; col++) {
+      const x = rowStartX + col * row.gap;
 
-            let offsetFromCenter = Math.abs(col - center);
-            let normalizedHeight;
+      let offsetFromCenter = Math.abs(col - center);
+      let normalizedHeight;
 
-            if (row.count === 6) {
-                normalizedHeight = offsetFromCenter / 2.5;
-            } else {
-                normalizedHeight = offsetFromCenter / maxOffset;
-            }
+      if (row.count === 6) {
+        normalizedHeight = offsetFromCenter / 2.5;
+      } else {
+        normalizedHeight = offsetFromCenter / maxOffset;
+      }
 
-            normalizedHeight = Math.min(normalizedHeight, 1);
+      normalizedHeight = Math.min(normalizedHeight, 1);
 
-            const y = row.y + (normalizedHeight * normalizedHeight) * row.arc;
+      const y = row.y + (normalizedHeight * normalizedHeight) * row.arc;
 
-            const angleOffset = (col - center) / center;
-            const maxAngle = rowIdx === 0 ? 8 : 6;
-            const angle = angleOffset * maxAngle;
+      const angleOffset = (col - center) / center;
+      const maxAngle = rowIdx === 0 ? 8 : 6;
+      const angle = angleOffset * maxAngle;
 
-            stackPositions.push({
-                x: Math.round(x),
-                y: Math.round(y),
-                angle
-            });
-        }
+      stackPositions.push({
+        x: Math.round(x),
+        y: Math.round(y),
+        angle
+      });
     }
-    scene.input.enabled = false;
+  }
+  scene.input.enabled = false;
 
-    await new Promise((resolve) => {
-        let flyDelay = 0;
-        const FLY_STEP = 30;
-        let totalTweens = 0;
-        let finishedTweens = 0;
+  await new Promise((resolve) => {
+    let flyDelay = 0;
+    const FLY_STEP = 30;
+    let totalTweens = 0;
+    let finishedTweens = 0;
 
-        for (let stackIdx = 0; stackIdx < totalStacks; stackIdx++) {
-            totalTweens += scene.tableau[stackIdx].length;
-        }
+    for (let stackIdx = 0; stackIdx < totalStacks; stackIdx++) {
+      totalTweens += scene.tableau[stackIdx].length;
+    }
 
-        for (let stackIdx = 0; stackIdx < totalStacks; stackIdx++) {
-            const stack = scene.tableau[stackIdx];
-            const pos = stackPositions[stackIdx];
+    for (let stackIdx = 0; stackIdx < totalStacks; stackIdx++) {
+      const stack = scene.tableau[stackIdx];
+      const pos = stackPositions[stackIdx];
 
-            stack.forEach((card, cardIdx) => {
-                const y = pos.y + cardIdx * -4;
+      stack.forEach((card, cardIdx) => {
+        const y = pos.y + cardIdx * -4;
 
-                card.setPosition(centerX, -100);
-                card.startX = pos.x;
-                card.startY = y;
+        card.setPosition(centerX, -100);
+        card.startX = pos.x;
+        card.startY = y;
 
-                card.container.setAngle(0);
-                card.originalAngle = pos.angle;
-                card.originIndex = cardIdx;
-                card.originStackIndex = stackIdx;
-                const depth = stackIdx * 100 + (cardIdx + 1);
-                card.originalDepth = depth;
-                card.container.setDepth(depth);
+        card.container.setAngle(0);
+        card.originalAngle = pos.angle;
+        card.originIndex = cardIdx;
+        card.originStackIndex = stackIdx;
+        const depth = stackIdx * 100 + (cardIdx + 1);
+        card.originalDepth = depth;
+        card.container.setDepth(depth);
 
-                scene.tweens.add({
-                    targets: card.container,
-                    x: pos.x,
-                    y: y,
-                    angle: pos.angle,
-                    alpha: { from: 0.7, to: 1 },
-                    ease: 'Sine.easeOut',
-                    duration: 150,
-                    delay: flyDelay,
-                    onComplete: () => {
-                        finishedTweens++;
-                        if (finishedTweens === totalTweens) {
-                            resolve();
-                        }
-                    }
-                });
+        scene.tweens.add({
+          targets: card.container,
+          x: pos.x,
+          y: y,
+          angle: pos.angle,
+          alpha: { from: 0.7, to: 1 },
+          ease: 'Sine.easeOut',
+          duration: 150,
+          delay: flyDelay,
+          onComplete: () => {
+            finishedTweens++;
+            if (finishedTweens === totalTweens) {
+              resolve();
+            }
+          }
+        });
 
-                flyDelay += FLY_STEP;
-            });
-        }
-    });
+        flyDelay += FLY_STEP;
+      });
+    }
+  });
 
-    scene.input.enabled = true;
+  scene.input.enabled = true;
 }
 
 
@@ -167,6 +167,10 @@ export function registerDragHandlers(scene) {
 
     attachParticlesToCard(scene, currentCard);
 
+    currentCard._lastEmitX = gameObject.x;
+    currentCard._lastEmitY = gameObject.y;
+    currentCard._emitDistanceThreshold = 30; 
+
     if (scene.hint) {
       scene.hint.clear();
       scene.isDragging = true;
@@ -179,9 +183,6 @@ export function registerDragHandlers(scene) {
         );
       }
     }
-
-    // debug
-    // console.log('Drag started:', currentCard);
   });
 
   scene.input.on('drag', (pointer, gameObject, dragX, dragY) => {
@@ -189,17 +190,32 @@ export function registerDragHandlers(scene) {
     gameObject.y = dragY;
     const currentCard = scene.deck.find(c => c.container === gameObject);
     if (!currentCard) return;
+
+    if (!currentCard.particleManager) return;
+
+    const lastX = currentCard._lastEmitX ?? dragX;
+    const lastY = currentCard._lastEmitY ?? dragY;
+    const dx = dragX - lastX;
+    const dy = dragY - lastY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const threshold = currentCard._emitDistanceThreshold ?? 50;
+
+    if (dist >= threshold) {
+      currentCard.particleManager.emitParticleAt(dragX, dragY, 1);
+      currentCard._lastEmitX = dragX;
+      currentCard._lastEmitY = dragY;
+    }
   });
 
   scene.input.on('dragend', (pointer, gameObject) => {
     const currentCard = scene.deck.find(c => c.container === gameObject);
     if (!currentCard) return;
 
-    if (currentCard && currentCard.suitParticles) {
-      currentCard.suitParticles.destroy();
-      currentCard.suitParticles = null;
+    if (currentCard.particleEmitter) {
+      currentCard.particleEmitter.stop && currentCard.particleEmitter.stop();
+      currentCard.particleEmitter.destroy && currentCard.particleEmitter.destroy();
+      currentCard.particleEmitter = null;
     }
-
     currentCard.container.setScale(currentCard.originalScale);
     let placed = false;
 
@@ -229,7 +245,7 @@ export function registerDragHandlers(scene) {
               break;
             }
           }
-          
+
           playRewardGemAnimation(scene, currentCard.container.x, currentCard.container.y);
 
           currentCard.container.input.draggable = false;
@@ -335,55 +351,57 @@ export function createSpark(scene) {
   const spikes = 5;
   const outerRadius = size / 2;
   const innerRadius = outerRadius * 0.4;
-  
+
   graphics.fillStyle(0xFFFFFF, 1);
   graphics.lineStyle(2, 0xFFFF00, 1);
-  
+
   let x = size / 2;
   let y = size / 2;
-  
+
   let rot = Math.PI / 2 * 3;
   let step = Math.PI / spikes;
-  
+
   graphics.beginPath();
   graphics.moveTo(x, y - outerRadius);
-  
+
   for (let i = 0; i < spikes; i++) {
     x = size / 2 + Math.cos(rot) * outerRadius;
     y = size / 2 + Math.sin(rot) * outerRadius;
     graphics.lineTo(x, y);
     rot += step;
-    
+
     x = size / 2 + Math.cos(rot) * innerRadius;
     y = size / 2 + Math.sin(rot) * innerRadius;
     graphics.lineTo(x, y);
     rot += step;
   }
-  
+
   graphics.lineTo(size / 2, size / 2 - outerRadius);
   graphics.closePath();
   graphics.fillPath();
   graphics.strokePath();
-  
 
-  
+
+
   graphics.generateTexture('spark', size, size);
   graphics.destroy();
 }
 
 function attachParticlesToCard(scene, card) {
-    card.suitParticles = scene.add.particles(0, 0, card.suit, {
-        lifespan: 800,               
-        speed: { min: 100, max: 200 },    
-        angle: { min: 0, max: 360 },      
-        gravityY: 200,                    
-        scale: { start: 3, end: 0 },      
-        alpha: { start: 1, end: 0 },       
-        frequency: 100,                     
-        quantity: 1,                       
-        follow: card.container,             
-        followOffset: { x: 35, y: -70 },
-    }).setDepth(card.container.depth + 1);
+  if (card.particleManager) return;
+
+  card.particleManager = scene.add.particles(0, 0, card.suit, {
+    lifespan: 800,
+    speed: { min: 100, max: 200 },
+    angle: { min: 0, max: 360 },
+    gravityY: 200,
+    scale: { start: 3, end: 0 },
+    alpha: { start: 1, end: 0 },
+    quantity: 1,
+    frequency: -1 
+  });
+
+  if (card.particleManager.setDepth) card.particleManager.setDepth(card.container.depth + 1);
 }
 
 
