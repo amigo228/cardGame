@@ -1,6 +1,8 @@
-import { createDeck, renderDeck, registerDragHandlers, renderFoundation, createSpark } from '../utils.js';
+import { renderDeck, registerDragHandlers, renderFoundation, createSpark } from '../utils.js';
 import { Hint } from '../hint.js';
 import { Hud } from '../hud.js';
+import { Tutorial } from '../tutorial.js';
+import { GameState } from '../GameState.js';
 export class GameScene extends Phaser.Scene {
 
   constructor() {
@@ -10,10 +12,19 @@ export class GameScene extends Phaser.Scene {
   preload() {
   }
 
+
   create() {
     createSpark(this);
     this.returnStack = [];
-    this.deck = createDeck(this);
+
+    if (GameState.currentLevel === 1) {
+      this.tutorial = new Tutorial(this);
+      this.deck = this.tutorial.createTutorialDeck();
+    }
+    else {
+      this.deck = createDeck(this);
+    }
+
     this.hud = new Hud(this, this.reloadDeck.bind(this));
     this.hint = new Hint(this);
     const bg = this.add.image(0, 0, 'bg').setOrigin(0, 0);
@@ -31,6 +42,7 @@ export class GameScene extends Phaser.Scene {
         this.hint.show(this.foundations, this.tableau);
       }
     });
+
   }
 
   reloadDeck() {

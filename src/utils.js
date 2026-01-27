@@ -142,6 +142,7 @@ export async function renderDeck(scene, deck) {
   });
 
   scene.input.enabled = true;
+  scene.tutorial.start();
 }
 
 
@@ -149,6 +150,13 @@ export function registerDragHandlers(scene) {
   scene.input.on('dragstart', (pointer, gameObject) => {
     const currentCard = scene.deck.find(c => c.container === gameObject);
     if (!currentCard) { return; }
+
+    if (scene.tutorial?.isActive) {
+      if (!scene.tutorial.canDrag(currentCard)) {
+        return;
+      }
+      scene.tutorial.nextStep();
+    }
 
     const stackIndex = scene.tableau.findIndex(stack => stack.includes(currentCard));
     if (stackIndex === -1) return;
@@ -172,6 +180,7 @@ export function registerDragHandlers(scene) {
     currentCard._lastEmitX = gameObject.x;
     currentCard._lastEmitY = gameObject.y;
     currentCard._emitDistanceThreshold = 30;
+    gameObject.setDepth(100000)
 
     if (scene.hint) {
       scene.hint.clear();
@@ -375,6 +384,8 @@ export function registerDragHandlers(scene) {
       });
       currentCard.container.setAngle(currentCard.originalAngle);
     }
+
+    scene.tutorial.nextStep()
 
     scene.isDragging = false;
     scene.resetHintTimer();

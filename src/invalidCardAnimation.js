@@ -14,6 +14,7 @@ export function playInvalidCardAnimation(scene, container, onComplete) {
     onComplete: () => {
       container.angle = startAngle;
       container.procceed = false;
+      container.setScale(1.7);
       if (onComplete) onComplete();
     }
   });

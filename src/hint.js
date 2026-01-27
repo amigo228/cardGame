@@ -42,6 +42,9 @@ export class Hint {
 
 
     show(foundations, tableau) {
+        if (this.scene.tutorial && this.scene.tutorial.isActive) {
+            return; 
+        }
         this.clear();
         this.calculateHint(foundations, tableau);
 
