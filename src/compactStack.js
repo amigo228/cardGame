@@ -1,22 +1,33 @@
-export function compactStack(stack, { animate = true, gapY = -4, duration = 200 } = {}) {
-    console.log("In compact stack")
-    if (!Array.isArray(stack) || stack.length === 0) return;
-    stack.sort((a, b) => (a.originIndex ?? 0) - (b.originIndex ?? 0));
-    const baseY = stack[0]?.startY ?? 200;
-    stack.forEach((card, idx) => {
-        const y = baseY + idx * gapY;
-        card.container.scene.tweens.killTweensOf(card.container);
-        card.container.scene.tweens.add({
-            targets: card.container,
-            y,
-            duration,
-            ease: 'Sine.easeOut'
-        });
-        card.startY = y;
-        const stackIdx = card.originStackIndex ?? 0;
-        const depth = stackIdx * 100 + (idx + 1);
-        card.originalDepth = depth;
-        card.container.setDepth(depth);
-        card.originIndex = idx;
+export function compactStack(
+  stack,
+  { gapY = -4, duration = 200 } = {}
+) {
+  if (!stack.length) return;
+
+  const scene = stack[0].container.scene;
+  const stackIdx = stack[0].originStackIndex;
+  const baseAngle = scene.stackAngles?.[stackIdx] ?? 0;
+  const baseY = stack[0].startY;
+
+  stack.forEach((card, idx) => {
+    const y = baseY + idx * gapY;
+
+    scene.tweens.killTweensOf(card.container);
+
+    scene.tweens.add({
+      targets: card.container,
+      y,
+      angle: baseAngle, 
+      duration,
+      ease: 'Sine.easeOut'
     });
+
+    card.startY = y;
+    card.originalAngle = baseAngle;
+    card.originIndex = idx;
+
+    const depth = stackIdx * 100 + (idx + 1);
+    card.originalDepth = depth;
+    card.container.setDepth(depth);
+  });
 }

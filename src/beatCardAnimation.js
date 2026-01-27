@@ -1,7 +1,7 @@
 import { playInvalidCardAnimation } from './invalidCardAnimation.js';
 import { playRewardGemAnimation } from './rewardGemAnimation.js';
 import { compactStack } from './compactStack.js';
-import {gameWon} from './gameWon.js';
+import { gameWon } from './gameWon.js';
 export function playBeatCardAnimation(scene, stackId = null, startPositions) {
     return new Promise(resolve => {
         scene.resetHintTimer?.();
@@ -10,6 +10,33 @@ export function playBeatCardAnimation(scene, stackId = null, startPositions) {
             resolve();
             return;
         }
+
+        let fromStack = -1;
+        let fromIndex = -1;
+
+        for (let i = 0; i < scene.tableau.length; i++) {
+            const idx = scene.tableau[i].indexOf(card);
+            if (idx !== -1) {
+                fromStack = i;
+                fromIndex = idx;
+                break;
+            }
+        }
+
+        const action = {
+            type: 'beat',
+            card,
+            fromType: 'tableau',
+            fromStack,
+            fromIndex,
+            prevStartX: card.startX,
+            prevStartY: card.startY,
+            prevOriginalDepth: card.originalDepth,
+            prevOriginalAngle: card.originalAngle,
+            toType: 'foundation',
+            toFoundationIndex: scene.foundations.indexOf(foundation),
+            time: Date.now()
+        };
 
         createParticlesForBooster(scene, startPositions.x, startPositions.y, {
             x: card.container.x,
@@ -26,7 +53,7 @@ export function playBeatCardAnimation(scene, stackId = null, startPositions) {
             }
             scene.deck = scene.deck.filter(c => c !== card);
             foundation.cards.push(card);
-            scene.returnStack.push(card);
+            scene.returnStack.push(action);
             scene.hud?.updateReturnButton?.()
             card.container.setDepth(20000);
             scene.tweens.add({
@@ -95,7 +122,7 @@ export function playBeatAllCardAnimation(scene, startPositions, callback) {
         promise = promise.then(() => {
             return playBeatCardAnimation(scene, i, startPositions)
                 .then(() => {
-                callback(); 
+                    callback();
                 });
         });
     }

@@ -1,4 +1,6 @@
 // "Every great game begins with a single scene. Let's make this one unforgettable!"
+import {BOT_ASSETS} from '../../assets/bots/bots.js';
+
 export class PreloadScene extends Phaser.Scene {
     constructor() {
         super('PreloadScene');
@@ -9,6 +11,9 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     preload() {
+        BOT_ASSETS.forEach(key => this.load.image(key, `assets/bots/${key}.jpg`));
+
+
         this.cameras.main.setBackgroundColor('#000000');
         this.load.image('player_icon', 'assets/player_icon.jpg');
         this.load.image('bg', 'assets/bg_gameplay.jpg');
@@ -16,6 +21,7 @@ export class PreloadScene extends Phaser.Scene {
         this.load.image('map1', 'assets/maps/map1.jpg');
         this.load.image('icon_sound_off', 'assets/icon_sound_off.png');
         this.load.image('icon_music_off', 'assets/icon_music_off.png');
+        this.load.image('but_round3', 'assets/but_round3.png');
 
         this.load.atlas('common1', 'assets/spritesheets/common1.png', 'assets/spritesheets/common1.json');
         this.load.atlas('common2', 'assets/spritesheets/common2.png', 'assets/spritesheets/common2.json');

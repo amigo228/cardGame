@@ -1,5 +1,6 @@
 import { returnCardAnimation } from './returnCardAnimation.js';
 import { playBeatCardAnimation, playBeatAllCardAnimation } from './beatCardAnimation.js';
+import {languages} from './languages.js';
 
 export class Hud {
     constructor(scene, onShuffle) {
@@ -7,6 +8,7 @@ export class Hud {
         this.onShuffle = onShuffle;
         this.init();
         this.settingButtons = null;
+        this.currentLanguage = 'en';
     }
 
     init() {
@@ -98,12 +100,14 @@ export class Hud {
 
     renderSettingsOverlay() {
         this.overlay = this.scene.add.rectangle(0, 0, this.scene.scale.width, this.scene.scale.height, 0x000000)
-            .setOrigin(0).setAlpha(0.5).setDepth(99999).setInteractive();
+            .setOrigin(0).setAlpha(0.75).setDepth(99999).setInteractive();
 
         const soundButton = this.createSoundButton(this.createToggleButton({ x: 660, y: 1200 }));
         const musicButton = this.createMusicButton(this.createToggleButton({ x: 880, y: 1200 }));
         const languageButton = this.createLanguageButton(this.createToggleButton({ x: 1100, y: 1200 }));
-        const exitButton = this.createExitButton(this.createToggleButton({ x: 1320, y: 1200 }), [soundButton, musicButton, languageButton]);
+        const exitButton = this.createExitButton(this.createToggleButton({ x: 1320, y: 1200 }));
+        languageButton.relatedButtons = [soundButton, musicButton, exitButton];
+        exitButton.relatedButtons = [soundButton, musicButton, languageButton];
         this.scene.tweens.add({
             targets: [soundButton, musicButton, languageButton, exitButton],
             duration: 300,
@@ -172,20 +176,71 @@ export class Hud {
         return container.setScale(2);
     }
 
+    getCurrentLanguageIcon() {
+        return languages.find(l => l.id === this.currentLanguage);
+    }
+
     createLanguageButton(container) {
-        const fillImage = this.scene.add.image(0, 0, 'common1', 'icon_en').setScale(0.7);
+        const fillImage = this.scene.add.image(0, 0, 'common1', this.getCurrentLanguageIcon().icon).setScale(0.7);
         container.add(fillImage);
         container.fill = fillImage;
+        container.on('pointerdown', () => {
+            this.overlay.off('pointerdown');
+            this.hideOverlay(null, [...(container.relatedButtons), container], () => this.createLanguageButtons());
+
+            
+        })
         return container.setScale(2);
     }
 
-    createExitButton(container, buttons) {
+    createLanguageButtons() {
+        const startX = 300;
+        const startY = 1400;
+        const gapX = 220;
+
+        const languageButtons = languages.map((l, index) => {
+            let languageButton = null;
+            if(l.id === this.currentLanguage) {
+                languageButton = this.scene.add.container(startX + gapX * index, startY);
+                const bg = this.scene.add.image(0, 0, 'but_round3').setScale(0.7);
+                languageButton.add(bg);
+                languageButton.setSize(bg.width, bg.height).setDepth(1000000);
+            }
+            else {
+                languageButton = this.createToggleButton({x: startX + gapX * index, y: startY});
+            }
+            languageButton.add(this.scene.add.image(0, 0, 'common1', l.icon).setScale(0.7)).setScale(2);
+            languageButton.id = l.id;
+            return languageButton;
+        });
+
+        languageButtons.forEach((l, index) => {
+            l.on('pointerdown', () => {
+                if(this.currentLanguage === l.id) return;
+                this.currentLanguage = l.id;
+                this.hideOverlay(this.overlay, languageButtons);
+            })
+        });
+
+        this.scene.tweens.add({
+            targets: languageButtons,
+            duration: 400,
+            ease: "Linear",
+            y: this.scene.scale.height / 2
+        })
+
+        this.overlay.on('pointerdown', () => {
+            this.hideOverlay(this.overlay, languageButtons)
+        })
+    }
+
+    createExitButton(container) {
         const fillImage = this.scene.add.image(0, 0, 'common2', 'game_exit_icon_small').setScale(0.7);
         container.add(fillImage);
         container.fill = fillImage;
 
         container.on('pointerdown', () => {
-            this.hideOverlay(null, [...buttons, container]);
+            this.hideOverlay(null, [...(container.relatedButtons), container]);
             this.overlay.off('pointerdown');
             const exitContainer = this.scene.add.container(this.scene.scale.width / 2, 1400).setDepth(100000);
             const exitBg = this.scene.add.image(0, 0, 'common2', 'win_bg');
@@ -226,6 +281,8 @@ export class Hud {
                 this.scene.add.image(0, 30, 'common2', 'game_exit_icon')
             )
 
+            exitContainer.setScale(1.5);
+
 
             this.scene.tweens.add({
                 targets: exitContainer,
@@ -252,6 +309,7 @@ export class Hud {
             })
 
         })
+
 
         return container.setScale(2);
     }

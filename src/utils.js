@@ -2,7 +2,7 @@ import Card from './card.js';
 import { playInvalidCardAnimation } from './invalidCardAnimation.js';
 import { playRewardGemAnimation } from './rewardGemAnimation.js';
 import { gameWon } from './gameWon.js';
-
+import { compactStack } from './compactStack.js';
 
 export function createDeck(scene) {
   const suits = ['c', 'd', 'h', 's'];
@@ -35,6 +35,7 @@ export function isCardValid(foundation, card) {
 }
 
 export async function renderDeck(scene, deck) {
+  scene.stackAngles = [];
   const centerX = 1160;
   const startY = 200;
   const rows = [
@@ -78,12 +79,13 @@ export async function renderDeck(scene, deck) {
       const angleOffset = (col - center) / center;
       const maxAngle = rowIdx === 0 ? 8 : 6;
       const angle = angleOffset * maxAngle;
-
       stackPositions.push({
         x: Math.round(x),
         y: Math.round(y),
         angle
       });
+
+      scene.stackAngles.push(angle);
     }
   }
   scene.input.enabled = false;
@@ -169,7 +171,7 @@ export function registerDragHandlers(scene) {
 
     currentCard._lastEmitX = gameObject.x;
     currentCard._lastEmitY = gameObject.y;
-    currentCard._emitDistanceThreshold = 30; 
+    currentCard._emitDistanceThreshold = 30;
 
     if (scene.hint) {
       scene.hint.clear();
@@ -201,9 +203,12 @@ export function registerDragHandlers(scene) {
     const threshold = currentCard._emitDistanceThreshold ?? 50;
 
     if (dist >= threshold) {
-      currentCard.particleManager.emitParticleAt(dragX, dragY, 1);
-      currentCard._lastEmitX = dragX;
-      currentCard._lastEmitY = dragY;
+      if (!currentCard._lastEmitTime || Date.now() - currentCard._lastEmitTime > 16) { // ~60fps
+        currentCard.particleManager.emitParticleAt(dragX, dragY, 1);
+        currentCard._lastEmitX = dragX;
+        currentCard._lastEmitY = dragY;
+        currentCard._lastEmitTime = Date.now();
+      }
     }
   });
 
@@ -211,13 +216,27 @@ export function registerDragHandlers(scene) {
     const currentCard = scene.deck.find(c => c.container === gameObject);
     if (!currentCard) return;
 
-    if (currentCard.particleEmitter) {
-      currentCard.particleEmitter.stop && currentCard.particleEmitter.stop();
-      currentCard.particleEmitter.destroy && currentCard.particleEmitter.destroy();
-      currentCard.particleEmitter = null;
+    if (currentCard.particleManager) {
+      try {
+        if (currentCard.particleManager.emitters) {
+          currentCard.particleManager.emitters.each(e => {
+            e.stop && e.stop();
+            if (currentCard.particleManager.removeEmitter) {
+              currentCard.particleManager.removeEmitter(e);
+            }
+          });
+        }
+      } catch (err) {
+      }
+
+      currentCard.particleManager.destroy && currentCard.particleManager.destroy();
+      currentCard.particleManager = null;
     }
     currentCard.container.setScale(currentCard.originalScale);
     let placed = false;
+
+    const sourceStackIdx = scene.tableau.findIndex(s => s.includes(currentCard));
+    const sourceIndexInStack = sourceStackIdx !== -1 ? scene.tableau[sourceStackIdx].indexOf(currentCard) : -1;
 
     for (const f of scene.foundations) {
       const dx = gameObject.x - f.x;
@@ -230,19 +249,33 @@ export function registerDragHandlers(scene) {
         const topCard = f.cards[f.cards.length - 1];
         if ((f.type === 'asc' && currentCard.suit === topCard.suit && currentCard.rank === topCard.rank + 1) ||
           (f.type === 'desc' && currentCard.suit === topCard.suit && currentCard.rank === topCard.rank - 1)) {
-          scene.returnStack.push(currentCard);
-          scene.hud?.updateReturnButton();
+
+          const action = {
+            card: currentCard,
+            fromType: 'tableau',
+            fromStack: sourceStackIdx,
+            fromIndex: sourceIndexInStack,
+            prevStartX: currentCard.startX,
+            prevStartY: currentCard.startY,
+            prevOriginalDepth: currentCard.originalDepth,
+            prevOriginalAngle: currentCard.originalAngle,
+            toType: 'foundation',
+            toFoundationIndex: scene.foundations.indexOf(f),
+            time: Date.now()
+          };
+
           currentCard.container.x = f.x;
           currentCard.container.y = f.y;
           currentCard.container.setDepth(200 + f.cards.length + 1);
           f.cards.push(currentCard);
           scene.deck = scene.deck.filter(c => c !== currentCard);
 
-          for (const stack of scene.tableau) {
-            const idx = stack.indexOf(currentCard);
+          if (sourceStackIdx !== -1) {
+            const src = scene.tableau[sourceStackIdx];
+            const idx = src.indexOf(currentCard);
             if (idx !== -1) {
-              stack.splice(idx, 1);
-              break;
+              src.splice(idx, 1);
+              compactStack(src);
             }
           }
 
@@ -253,13 +286,81 @@ export function registerDragHandlers(scene) {
             playInvalidCardAnimation(scene, currentCard.container);
           });
 
-          // add to return back stack
-          placed = true;
+          scene.returnStack.push(action);
+          scene.hud?.updateReturnButton();
 
+          placed = true;
           gameWon(scene);
         }
       }
     }
+
+    for (let i = 0; i < scene.tableau.length; i++) {
+      const stack = scene.tableau[i];
+      const topCard = stack[stack.length - 1];
+
+      if (!topCard) continue;
+
+      const dx = gameObject.x - topCard.container.x;
+      const dy = gameObject.y - topCard.container.y;
+
+      const thresholdX = 100;
+      const thresholdY = 140;
+
+      if (Math.abs(dx) < thresholdX && Math.abs(dy) < thresholdY) {
+        const sameSuit = currentCard.suit === topCard.suit;
+        const rankDiff = Math.abs(currentCard.rank - topCard.rank) === 1;
+
+        if (sameSuit && rankDiff) {
+          let prevStackIdx = -1;
+          let prevIndex = -1;
+          for (let sIdx = 0; sIdx < scene.tableau.length; sIdx++) {
+            const s = scene.tableau[sIdx];
+            const idx = s.indexOf(currentCard);
+            if (idx !== -1) { prevStackIdx = sIdx; prevIndex = idx; break; }
+          }
+
+          const action = {
+            card: currentCard,
+            fromType: 'tableau',
+            fromStack: prevStackIdx,
+            fromIndex: prevIndex,
+            prevStartX: currentCard.startX,
+            prevStartY: currentCard.startY,
+            prevOriginalDepth: currentCard.originalDepth,
+            prevOriginalAngle: currentCard.originalAngle,
+            toType: 'tableau',
+            toStack: i,
+            time: Date.now()
+          };
+
+          if (prevStackIdx !== -1) {
+            const src = scene.tableau[prevStackIdx];
+            const idx = src.indexOf(currentCard);
+            if (idx !== -1) {
+              src.splice(idx, 1);
+              compactStack(src);
+            }
+          }
+
+          stack.push(currentCard);
+          currentCard.originStackIndex = i;
+          currentCard.originIndex = stack.length - 1;
+          currentCard.startX = topCard.startX;
+          currentCard.startY = topCard.startY + (stack.length - 1) * -4;
+          currentCard.container.x = currentCard.startX;
+          currentCard.container.y = currentCard.startY;
+          currentCard.container.setDepth(i * 100 + stack.length);
+          compactStack(stack);
+          scene.returnStack.push(action);
+          scene.hud?.updateReturnButton();
+
+          placed = true;
+          break;
+        }
+      }
+    }
+
 
     if (!placed) {
       scene.tweens.add({
@@ -398,7 +499,7 @@ function attachParticlesToCard(scene, card) {
     scale: { start: 3, end: 0 },
     alpha: { start: 1, end: 0 },
     quantity: 1,
-    frequency: -1 
+    frequency: -1
   });
 
   if (card.particleManager.setDepth) card.particleManager.setDepth(card.container.depth + 1);

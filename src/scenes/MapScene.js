@@ -4,6 +4,8 @@ import { LEVELS } from '../levelCoordinates.js';
 import { GameState } from '../GameState.js';
 import {playNextLevelAnimation} from '../animations/nextLevelAnimation.js';
 import {Avatar} from '../avatar.js';
+import {findPlayers} from '../mapScene/findPlayers.js';
+
 export class MapScene extends Phaser.Scene {
     constructor() {
         super('MapScene');
@@ -20,6 +22,9 @@ export class MapScene extends Phaser.Scene {
             if (level.id === GameState.currentLevel) status = 'active'
             const l = new Level(this, level.x, level.y, status, level.id);
             l.drawLevel();
+            if (level.id === GameState.currentLevel) {
+                l.container.on('pointerdown', () => findPlayers(this));
+            }
             return l;
         });
 
@@ -54,7 +59,11 @@ export class MapScene extends Phaser.Scene {
 
         playBtn.setScale(1.5)
 
-        playBtn.on('pointerdown', () => this.scene.start('GameScene'));
+        playBtn.on('pointerdown', () => {
+            
+            //this.scene.start('GameScene');
+            findPlayers(this);
+            });
     }
 
 }

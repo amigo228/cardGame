@@ -11,7 +11,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-
     createSpark(this);
     this.returnStack = [];
     this.deck = createDeck(this);
@@ -129,6 +128,10 @@ export class GameScene extends Phaser.Scene {
 
                 allCards.forEach((card, i) => {
                   const t = targetData[i];
+                  if (card.particleManager) {
+                    card.particleManager.destroy();
+                    card.particleManager = null;
+                  }
                   card.updateFace(t.rank, t.suit, t.color, false);
                 });
 
