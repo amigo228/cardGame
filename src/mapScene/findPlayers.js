@@ -227,9 +227,9 @@ function simpleBotSearch(scene, parent, bot1, bot2, loadingText, onComplete) {
     return cleanup;
 }
 
-function getRandomBotKey(exclude) {
-    const options = exclude
-        ? BOT_ASSETS.filter(key => key !== exclude)
-        : BOT_ASSETS;
-    return Phaser.Utils.Array.GetRandom(options);
+function getRandomBotKey() {
+    const availableBots = BOT_ASSETS.filter(bot => !bot.inGame);
+    const bot = Phaser.Utils.Array.GetRandom(availableBots);
+    bot.inGame = true;
+    return bot.id;
 }

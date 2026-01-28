@@ -1,8 +1,11 @@
-import { createDeck, renderDeck, registerDragHandlers, renderFoundation, createSpark } from '../utils.js';
+import { createDeck, renderDeck, renderFoundation, createSpark } from '../utils.js';
+import { registerDragHandlers } from '../registerDragHandlers.js';
 import { Hint } from '../hint.js';
 import { Hud } from '../hud.js';
 import { Tutorial } from '../tutorial.js';
 import { GameState } from '../GameState.js';
+import {Bot} from '../bot.js';
+import { BOT_ASSETS } from '../../assets/bots/bots.js';
 export class GameScene extends Phaser.Scene {
 
   constructor() {
@@ -14,6 +17,9 @@ export class GameScene extends Phaser.Scene {
 
 
   create() {
+    this.bots = BOT_ASSETS.filter(bot => bot.inGame);
+    this.bot1 = new Bot(this, this.bots[0], 210, 430, 'OPPONENT 1');
+    this.bot2 = new Bot(this, this.bots[1], 210, 600, 'OPPONENT 2');
     createSpark(this);
     this.returnStack = [];
 

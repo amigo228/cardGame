@@ -134,7 +134,7 @@ export function createParticlesForBooster(scene, startX, startY, targetPos, opts
     return new Promise(resolve => {
         const count = 7;
         const imgKey = 'spark';
-        const baseDuration = 200;
+        const baseDuration = 400;
         const depth = 30000;
         let particlesCompleted = 0;
         for (let i = 0; i < count; i++) {
@@ -146,10 +146,19 @@ export function createParticlesForBooster(scene, startX, startY, targetPos, opts
                 .setDepth(depth)
                 .setBlendMode(Phaser.BlendModes.ADD);
 
-            const targetOffsetX = Phaser.Math.Between(-10, 10);
-            const targetOffsetY = Phaser.Math.Between(-8, 8);
+            const dx = targetPos.x - jitterStartX;
+            const dy = targetPos.y - jitterStartY;
+            const len = Math.sqrt(dx * dx + dy * dy) || 1;
+
+            const nx = -dy / len;
+            const ny = dx / len;
+
+            const spread = Phaser.Math.Between(-30, 30);
+
+            const targetOffsetX = nx * spread;
+            const targetOffsetY = ny * spread;
             const duration = baseDuration;
-            const delay = i * 40 + Phaser.Math.Between(0, 120);
+            const delay = i * 20 + Phaser.Math.Between(0, 120);
 
             scene.tweens.add({
                 targets: star,
@@ -158,7 +167,7 @@ export function createParticlesForBooster(scene, startX, startY, targetPos, opts
                 scale: 0,
                 delay,
                 duration,
-                ease: 'Linear',
+                ease: 'Cubic.Out',
                 onComplete: () => {
                     star.destroy();
                     particlesCompleted++;

@@ -11,7 +11,7 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     preload() {
-        BOT_ASSETS.forEach(key => this.load.image(key, `assets/bots/${key}.jpg`));
+        BOT_ASSETS.forEach(key => this.load.image(key.id, `assets/bots/${key.id}.jpg`));
 
 
         this.cameras.main.setBackgroundColor('#000000');

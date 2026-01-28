@@ -341,6 +341,7 @@ export class Hud {
         const joker = this.scene.add.image(120, 970, 'common1', 'b_joker_out').setScale(1.5).setDepth(3).setInteractive();
         joker.on("pointerdown", () => {
             this.playBoosterExplosion(120, 970);
+            this.drawGemsCost(180, 860, 100);
             joker.setFrame('b_joker_gray_out');
             joker.disableInteractive();
             playBeatAllCardAnimation(this.scene, { x: 120, y: 970 }, () => this.playBoosterExplosion(120, 970)).then(() => {
@@ -354,12 +355,32 @@ export class Hud {
         const magic = this.scene.add.image(300, 970, 'common1', 'b_magic_out').setScale(1.5).setDepth(3).setInteractive();
         magic.on("pointerdown", () => {
             this.playBoosterExplosion(300, 970);
+            this.drawGemsCost(360, 860, 25);
             magic.setFrame('b_magic_gray_out');
             magic.disableInteractive();
             playBeatCardAnimation(this.scene, null, { x: 300, y: 970 }).then(() => {
                 magic.setFrame('b_magic_out');
                 magic.setInteractive();
             });
+        })
+    }
+
+    drawGemsCost(x, y, cost) {
+        const costContainer = this.scene.add.container(x, y);
+        costContainer.add(this.scene.add.image(0, 0, 'common1', 'tip_bg').setScale(0.5, -0.5));
+        costContainer.add(this.scene.add.text(-20, -5, `-${cost}`, {
+            fontFamily: 'Arial',
+            fontSize: '28px',
+            color: '#000000',
+            strokeThickness: 6,
+        }).setOrigin(0.5));
+        costContainer.add(this.scene.add.image(30, -5, 'common1', 'money_ico_btn')).setDepth(10);
+        this.scene.tweens.add({
+            targets: costContainer,
+            duration: 800,
+            ease: 'Linear',
+            alpha: 0,
+            onComplete: () => costContainer.destroy()
         })
     }
 
