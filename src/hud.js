@@ -382,8 +382,8 @@ export class Hud {
         border.moveTo(1160, 800);
         border.lineTo(1160, 1040);
         border.strokePath();
-        const leftArrow = this.scene.add.image(1105, 920, 'arrow-curved-icon').setDepth(11).setAngle(-90).setScale(0.6).setFlipX(true);
-        const rightArrow = this.scene.add.image(1215, 920, 'arrow-curved-icon').setDepth(11).setAngle(90).setScale(0.6).setFlipX(true);
+        const leftArrow = this.scene.add.image(1215, 920, 'arrow-curved-icon').setDepth(11).setAngle(-90).setScale(0.6).setFlipX(true);
+        const rightArrow = this.scene.add.image(1105, 920, 'arrow-curved-icon').setDepth(11).setAngle(90).setScale(0.6).setFlipX(true);
 
         this.scene.tweens.add({ targets: [leftArrow, rightArrow], scale: 0.64, duration: 900, yoyo: true, repeat: -1 });
     }

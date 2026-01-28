@@ -29,7 +29,7 @@ export class MapScene extends Phaser.Scene {
         });
 
         this.renderContinueButton();
-        this.avatar = new Avatar(this, LEVELS[GameState.currentLevel - 1].x, LEVELS[GameState.currentLevel - 1].y - 40);
+        this.avatar = new Avatar(this, LEVELS[GameState.currentLevel - 1].x, LEVELS[GameState.currentLevel - 1].y - 60);
         if (this.scene.settings.data?.nextLevel) {
             playNextLevelAnimation(this);
     }

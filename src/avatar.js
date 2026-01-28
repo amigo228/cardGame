@@ -13,6 +13,6 @@ export class Avatar {
         this.container.add(bg);
         this.container.setSize(bg.width, bg.height).setDepth(5);
         const playerIcon = this.scene.add.image(0, 0, 'player_icon').setScale(0.4);
-        this.container.add(playerIcon);
+        this.container.add(playerIcon).setScale(1.5);
     }
 }
