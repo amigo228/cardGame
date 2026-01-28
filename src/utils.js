@@ -142,22 +142,16 @@ export async function renderDeck(scene, deck) {
   });
 
   scene.input.enabled = true;
-  scene.tutorial.start();
+  scene.tutorial?.start();
 }
-
 
 export function registerDragHandlers(scene) {
   scene.input.on('dragstart', (pointer, gameObject) => {
     const currentCard = scene.deck.find(c => c.container === gameObject);
     if (!currentCard) { return; }
-
-    if (scene.tutorial?.isActive) {
-      if (!scene.tutorial.canDrag(currentCard)) {
-        return;
-      }
-      scene.tutorial.nextStep();
-    }
-
+    
+    currentCard.container.off('pointerdown');
+    
     const stackIndex = scene.tableau.findIndex(stack => stack.includes(currentCard));
     if (stackIndex === -1) return;
     const stack = scene.tableau[stackIndex];
@@ -166,24 +160,48 @@ export function registerDragHandlers(scene) {
     if (currentCard !== topCard) {
       gameObject.disableInteractive();
       gameObject.setDepth(currentCard.originalDepth);
-      return;
+      scene.time.delayedCall(100, () => {
+        gameObject.setInteractive({ draggable: true });
+      });
+      return; 
     }
 
+    if (scene.tutorial?.isActive) {  
+     
+      if (!scene.tutorial.canDrag(currentCard)) {
+        currentCard.container.on('pointerdown', () => {
+          playInvalidCardAnimation(scene, currentCard.container);
+        });
+        
+        gameObject.disableInteractive();
+        playInvalidCardAnimation(scene, currentCard.container, () => {
+          gameObject.setInteractive({ draggable: true });
+        });
+        
+        return;
+      }
+      if (scene.tutorial.currentStepType === 'pickup') {
+        scene.tutorial.nextStep();
+      }
+    }
     gameObject.setInteractive();
     gameObject.setDepth(scene.topDepth);
+
     currentCard.container.setAngle(0);
     currentCard.originalScale = currentCard.container.scaleX;
     currentCard.container.setScale(currentCard.originalScale * 1.05);
 
-    attachParticlesToCard(scene, currentCard);
+    if (!scene.tutorial?.isActive || (scene.tutorial?.isActive && scene.tutorial.canDrag(currentCard))) {
+      attachParticlesToCard(scene, currentCard);
+    }
 
     currentCard._lastEmitX = gameObject.x;
     currentCard._lastEmitY = gameObject.y;
     currentCard._emitDistanceThreshold = 30;
-    gameObject.setDepth(100000)
+    gameObject.setDepth(100000);
 
     if (scene.hint) {
-      scene.hint.clear();
+      scene.hint.clear(true);
       scene.isDragging = true;
       if (scene.hint.hintFoundation) {
         scene.hint.drawArrow(
@@ -297,7 +315,6 @@ export function registerDragHandlers(scene) {
 
           scene.returnStack.push(action);
           scene.hud?.updateReturnButton();
-
           placed = true;
           gameWon(scene);
         }
@@ -384,14 +401,17 @@ export function registerDragHandlers(scene) {
       });
       currentCard.container.setAngle(currentCard.originalAngle);
     }
-
-    scene.tutorial.nextStep()
-
     scene.isDragging = false;
     scene.resetHintTimer();
-    if (scene.hint) {
-      scene.hint.hintFoundation = null;
-      scene.hint.hintCard = null;
+    scene.hint.clear(false);
+
+    if (scene.tutorial?.isActive) {
+      if (scene.tutorial.currentStepType === 'place' && placed) {
+        scene.tutorial.nextStep();
+      }
+      else {
+        scene.tutorial.nextStep(true);
+      }
     }
   });
 }

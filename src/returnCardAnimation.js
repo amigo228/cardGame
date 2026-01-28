@@ -1,6 +1,8 @@
 import { compactStack } from './compactStack.js';
 
 export function returnCardAnimation(scene) {
+  scene.hint.clear(false);
+  scene.resetHintTimer(); 
   const action = Array.isArray(arguments[1]) ? arguments[1].pop() : scene.returnStack.pop();
   if (!action) return;
 
@@ -99,15 +101,6 @@ export function returnCardAnimation(scene) {
           cardToReturn.container.input.draggable = true;
         }
       } catch (e) {}
-
-      if (scene.hint) {
-        try { typeof scene.hint.clear === 'function' && scene.hint.clear(); } catch (e) {}
-        scene.hint.hintFoundation = null;
-        scene.hint.hintCard = null;
-      }
-      if (typeof scene.resetHintTimer === 'function') {
-        try { scene.resetHintTimer(); } catch (e) {}
-      }
     }
   });
 }

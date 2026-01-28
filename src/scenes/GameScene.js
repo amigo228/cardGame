@@ -1,4 +1,4 @@
-import { renderDeck, registerDragHandlers, renderFoundation, createSpark } from '../utils.js';
+import { createDeck, renderDeck, registerDragHandlers, renderFoundation, createSpark } from '../utils.js';
 import { Hint } from '../hint.js';
 import { Hud } from '../hud.js';
 import { Tutorial } from '../tutorial.js';
@@ -46,8 +46,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   reloadDeck() {
-    this.resetHintTimer();
     const flipDuration = 300;
+        this.hint.clear(false);
+    this.resetHintTimer();
 
     const topCards = this.tableau
       .map(stack => stack[stack.length - 1])
@@ -170,6 +171,7 @@ export class GameScene extends Phaser.Scene {
         });
       }
     });
+
   }
 
   resetHintTimer() {

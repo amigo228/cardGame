@@ -88,7 +88,7 @@ export function findPlayers(scene) {
     const cleanup = simpleBotSearch(scene, findPlayerContainer, bot1, bot2, loadingText, () => {
         if (scene._currentFindPlayersUI && !scene._currentFindPlayersUI.isDestroyed) {
             loadingText.setText("STARTING THE GAME.");
-            const transitionTimer = scene.time.delayedCall(2000, () => {
+            const transitionTimer = scene.time.delayedCall(200, () => {
                 if (scene._currentFindPlayersUI && !scene._currentFindPlayersUI.isDestroyed) {
                     cleanupFindPlayers(scene);
                     scene.scene.start('GameScene');
@@ -187,7 +187,7 @@ function simpleBotSearch(scene, parent, bot1, bot2, loadingText, onComplete) {
         });
         timers.length = 0;
     }
-    const timer1 = scene.time.delayedCall(2000, () => {
+    const timer1 = scene.time.delayedCall(200, () => {
         if (finished || !parent.active) return cleanup();
 
         if (target && target.wi && target.wi.active) {
@@ -198,7 +198,7 @@ function simpleBotSearch(scene, parent, bot1, bot2, loadingText, onComplete) {
             t = 0;
             target = bot2;
             
-            const timer2 = scene.time.delayedCall(2000, () => {
+            const timer2 = scene.time.delayedCall(200, () => {
                 if (finished || !parent.active) return cleanup();
 
                 if (target && target.wi && target.wi.active) {

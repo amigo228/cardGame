@@ -78,6 +78,11 @@ export class Hud {
     updateReturnButton() {
         const hasCards = this.scene.returnStack.length > 0;
 
+        if (this.scene.tutorial) {
+            this.scene.returnStack.length = 0;
+            return;
+        }
+
         if (hasCards) {
             this.returnIcon.setFrame('undo_icon');
             this.returnBtn.setInteractive();
