@@ -13,7 +13,7 @@ export class PreloadScene extends Phaser.Scene {
     preload() {
         BOT_ASSETS.forEach(key => this.load.image(key.id, `assets/bots/${key.id}.jpg`));
 
-
+        this.load.image('task_prb_fill2', 'assets/task_prb_fill2.png');
         this.cameras.main.setBackgroundColor('#000000');
         this.load.image('player_icon', 'assets/player_icon.jpg');
         this.load.image('bg', 'assets/bg_gameplay.jpg');

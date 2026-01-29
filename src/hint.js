@@ -4,11 +4,15 @@ export class Hint {
     this.hintFoundation = null;
     this.hintCard = null;
     this.hintArrow = null;
+    this.targetTableauCard = null;
+    this.targetEmptyStackIndex = null;
   }
 
   calculateHint(foundations, tableau) {
     this.hintCard = null;
     this.hintFoundation = null;
+    this.targetTableauCard = null;
+    this.targetEmptyStackIndex = null;
 
     for (let i = 0; i < foundations.length; ++i) {
       const foundation = foundations[i];
@@ -39,12 +43,56 @@ export class Hint {
         }
       }
     }
+
+    for (let i = 0; i < tableau.length; i++) {
+      const fromStack = tableau[i];
+      if (!fromStack.length) continue;
+
+      const fromCard = fromStack.at(-1);
+
+      for (let j = 0; j < tableau.length; j++) {
+        if (i === j) continue;
+
+        const toStack = tableau[j];
+        if (!toStack.length) continue;
+
+        const toCard = toStack.at(-1);
+
+        const sameSuit = fromCard.suit === toCard.suit;
+        const nearRank = Math.abs(fromCard.rank - toCard.rank) === 1;
+
+        if (sameSuit && nearRank) {
+          this.hintCard = fromCard;
+          this.targetTableauCard = toCard;
+          return;
+        }
+      }
+    }
+
+    for (let i = 0; i < tableau.length; i++) {
+        const fromStack = tableau[i];
+        if (!fromStack.length) continue;
+
+        const fromCard = fromStack.at(-1);
+        
+        for (let j = 0; j < tableau.length; j++) {
+            if (i === j) continue;
+            
+            const toStack = tableau[j];
+            if (toStack.length === 0) {
+                this.hintCard = fromCard;
+                this.targetEmptyStackIndex = j; 
+                return;
+            }
+        }
+    }
   }
+
   clear(keepState = false) {
     if (this.hintArrow) {
       try {
         this.scene.tweens.killTweensOf(this.hintArrow);
-      } catch (e) {  }
+      } catch (e) { }
       this.hintArrow.destroy();
       this.hintArrow = null;
     }
@@ -52,10 +100,16 @@ export class Hint {
     if (!keepState) {
       this.hintFoundation = null;
       this.hintCard = null;
+      this.targetTableauCard = null;
+      this.targetEmptyStackIndex = null;
     }
   }
 
   show(foundations, tableau) {
+    if (this.scene.tutorialActive) {
+      return;
+    }
+
     if (this.scene.tutorial && this.scene.tutorial.isActive) {
       return;
     }
@@ -83,10 +137,6 @@ export class Hint {
   }
 
   drawArrow(x, y, angle = 90, currentCard = null) {
-    if (currentCard && this.hintCard && currentCard !== this.hintCard) {
-      return;
-    }
-
     this.clear(true);
 
     this.hintArrow = this.scene.add

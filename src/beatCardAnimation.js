@@ -1,7 +1,6 @@
 import { playInvalidCardAnimation } from './invalidCardAnimation.js';
 import { playRewardGemAnimation } from './rewardGemAnimation.js';
 import { compactStack } from './compactStack.js';
-import { gameWon } from './gameWon.js';
 export function playBeatCardAnimation(scene, stackId = null, startPositions) {
     return new Promise(resolve => {
         scene.resetHintTimer?.();
@@ -77,8 +76,10 @@ export function playBeatCardAnimation(scene, stackId = null, startPositions) {
                     playRewardGemAnimation(scene, card.container.x, card.container.y);
                     if (affectedStack) compactStack(affectedStack);
 
+                    // ADDING A POINT TO PLAYER SCORE
+                    scene.player.addScore(1);
+
                     resolve();
-                    gameWon(scene);
                 }
             });
         });

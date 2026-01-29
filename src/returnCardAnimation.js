@@ -27,6 +27,9 @@ export function returnCardAnimation(scene) {
     onComplete: () => {
       scene.hud?.updateReturnButton();
 
+      // distracting 1 point from a player's score
+      scene.player.addScore(-1);
+
       if (scene.tweens) {
         try { scene.tweens.killTweensOf(cardToReturn.container); } catch (e) {}
       }

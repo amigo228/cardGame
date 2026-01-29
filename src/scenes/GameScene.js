@@ -4,8 +4,11 @@ import { Hint } from '../hint.js';
 import { Hud } from '../hud.js';
 import { Tutorial } from '../tutorial.js';
 import { GameState } from '../GameState.js';
-import {Bot} from '../bot.js';
+import { Bot } from '../bot.js';
+import { Player } from '../player.js';
 import { BOT_ASSETS } from '../../assets/bots/bots.js';
+import { drawOtherTutorials } from '../drawOtherTutorials.js';
+
 export class GameScene extends Phaser.Scene {
 
   constructor() {
@@ -17,17 +20,69 @@ export class GameScene extends Phaser.Scene {
 
 
   create() {
+    this.gameEnded = false;
+    // INITING BOTS
+    console.log("avail.bots", BOT_ASSETS);
     this.bots = BOT_ASSETS.filter(bot => bot.inGame);
-    this.bot1 = new Bot(this, this.bots[0], 210, 430, 'OPPONENT 1');
-    this.bot2 = new Bot(this, this.bots[1], 210, 600, 'OPPONENT 2');
+    this.bot1 = new Bot(this, this.bots[0], 210, 600, 'OPPONENT 1');
+    this.bot1.start();
+
+    this.bot2 = new Bot(this, this.bots[1], 210, 770, 'OPPONENT 2');
+    this.bot2.start();
+
+    // INITING PLAYER
+    this.player = new Player(this, "player_icon", 210, 430, 'PLAYER');
+
+
+    //INITING LEADERBORD
+    this.leaderboard = [
+      this.player,
+      this.bot1,
+      this.bot2
+    ];
+
+    //OTHER CODE FIELD AND OTHER
     createSpark(this);
     this.returnStack = [];
 
     if (GameState.currentLevel === 1) {
+      console.log("Gamestate 1")
       this.tutorial = new Tutorial(this);
       this.deck = this.tutorial.createTutorialDeck();
     }
+    else if (GameState.currentLevel === 2) {
+      this.tutorialActive = true;
+      this.tutorial = null;
+      drawOtherTutorials(this, this.scale.width / 2, this.scale.height / 2, 'These are your opponents.\n Your task is to clear the\n field faster than them.', { x: 450, y: 680, angle: 0 }, null, () => {
+            this.tutorialActive = false;
+            this.resetHintTimer();
+        });
+      this.deck = createDeck(this);
+    }
+    else if (GameState.currentLevel === 3) {
+      this.tutorialActive = true;
+      this.tutorial = null;
+      drawOtherTutorials(
+        this, 
+        720, 
+        970, 
+        'Use magic booster to find\n one suitable card on field', 
+        { x: 400, y: 970, angle: 0 },
+        {
+            x: 570,
+            y: 970,
+            text: 'Use joker booster to find\n eight suitable cards on field',
+            arrow: { x: 220, y: 970, angle: 0 }
+        },
+        () => {
+            this.tutorialActive = false;
+            this.resetHintTimer();
+        }
+    );
+      this.deck = createDeck(this);
+    }
     else {
+      this.tutorial = null;
       this.deck = createDeck(this);
     }
 
@@ -53,7 +108,7 @@ export class GameScene extends Phaser.Scene {
 
   reloadDeck() {
     const flipDuration = 300;
-        this.hint.clear(false);
+    this.hint.clear(false);
     this.resetHintTimer();
 
     const topCards = this.tableau
@@ -185,11 +240,108 @@ export class GameScene extends Phaser.Scene {
 
     this.hint.clear();
 
+    if (this.tutorialActive) return;
+
     this.hintTimer = this.time.addEvent({
-      delay: 5000,
-      callback: () => {
-        if (this.isDragging) return;
-        this.hint.show(this.foundations, this.tableau);
+        delay: 5000,
+        callback: () => {
+            if (this.isDragging) return;
+            this.hint.show(this.foundations, this.tableau);
+        }
+    });
+}
+
+  updateLeaderboard() {
+    const startY = 430;
+    const stepY = 170;
+
+    const sorted = [...this.leaderboard].sort(
+      (a, b) => b.getScore() - a.getScore()
+    );
+
+    sorted.forEach((entity, index) => {
+      const targetY = startY + index * stepY;
+      const wrapper = entity.getWrapper();
+
+      this.tweens.add({
+        targets: wrapper,
+        y: targetY,
+        duration: 400,
+        ease: 'Sine.easeInOut'
+      });
+    });
+  }
+
+  checkGameEnd() {
+    if (this.gameEnded) return;
+
+    const maxScore = 96;
+
+    if (this.player.score >= maxScore) {
+      this.showEndScreen(true, this.player.name);
+      return;
+    }
+
+    const winnerBot = this.leaderboard.find(
+      e => e !== this.player && e.score >= maxScore
+    );
+
+    if (winnerBot) {
+      this.showEndScreen(false, winnerBot.name);
+    }
+  }
+
+  showEndScreen(isPlayerWinner, playerName) {
+    if (this.gameEnded) return;
+    BOT_ASSETS.forEach(bot => bot.inGame = false);
+
+    this.gameEnded = true;
+
+    this.input.enabled = false;
+
+    const overlay = this.add.rectangle(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY,
+      this.scale.width,
+      this.scale.height,
+      0x000000,
+      0.4
+    ).setDepth(100000);
+
+    const text = isPlayerWinner
+      ? "GAME WON!"
+      : `Player ${playerName} won this level`;
+
+    const winText = this.add.text(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY,
+      text,
+      {
+        fontFamily: 'Arial',
+        fontSize: '64px',
+        fontStyle: 'bold',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 6
+      }
+    )
+      .setOrigin(0.5)
+      .setDepth(100001)
+      .setScale(0);
+
+    this.tweens.add({
+      targets: winText,
+      scale: 1,
+      ease: 'Back.easeOut',
+      duration: 800,
+      onComplete: () => {
+        this.time.delayedCall(3000, () => {
+          this.cameras.main.fadeOut(500, 0, 0, 0);
+
+          this.cameras.main.once('camerafadeoutcomplete', () => {
+            this.scene.start("MapScene", { nextLevel: true });
+          });
+        });
       }
     });
   }

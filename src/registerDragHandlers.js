@@ -1,5 +1,4 @@
 import { playRewardGemAnimation } from './rewardGemAnimation.js';
-import { gameWon } from './gameWon.js';
 import { compactStack } from './compactStack.js';
 import { playInvalidCardAnimation } from './invalidCardAnimation.js';
 export function registerDragHandlers(scene) {
@@ -60,14 +59,66 @@ export function registerDragHandlers(scene) {
         if (scene.hint) {
             scene.hint.clear(true);
             scene.isDragging = true;
+
+             if (scene.hint.hintCard && currentCard !== scene.hint.hintCard) {
+                return;
+            }
+
+
             if (scene.hint.hintFoundation) {
                 scene.hint.drawArrow(
                     scene.hint.hintFoundation.x,
                     scene.hint.hintFoundation.y - 140,
-                    -90,
-                    currentCard
+                    -90
                 );
             }
+            else if (scene.hint?.targetTableauCard) {
+                const target = scene.hint.targetTableauCard;
+                const angle = target.container?.angle || 0;
+                let offsetX = 0;
+                if (angle < -5) offsetX = 15;
+                else if (angle < -2) offsetX = 10;
+                else if (angle < 2) offsetX = 0;
+                else if (angle < 5) offsetX = -10;
+                else offsetX = -15;
+
+                scene.hint.drawArrow(
+                    target.container.x + offsetX,
+                    target.startY + 140,
+                    angle + 90
+                );
+            }
+
+            else if (scene.hint.targetEmptyStackIndex !== null) {
+            const stackIndex = scene.hint.targetEmptyStackIndex;
+            
+            let targetX, targetY;
+            
+            if (scene.tableauPositions && scene.tableauPositions[stackIndex]) {
+                targetX = scene.tableauPositions[stackIndex].x;
+                targetY = scene.tableauPositions[stackIndex].y;
+            }
+            else if (scene.stackPositions && scene.stackPositions[stackIndex]) {
+                targetX = scene.stackPositions[stackIndex].x;
+                targetY = scene.stackPositions[stackIndex].y;
+            }
+            else {
+                const firstStackX = 500;
+                const stackGap = 150; 
+                const stackY = 400; 
+                
+                targetX = firstStackX + stackIndex * stackGap;
+                targetY = stackY;
+            }
+            
+            scene.hint.drawArrow(
+                targetX,
+                targetY - 100,
+                -90,
+                currentCard
+            );
+        }
+
         }
     });
 
@@ -181,7 +232,9 @@ export function registerDragHandlers(scene) {
 
                             scene.returnStack.push(action);
                             scene.hud?.updateReturnButton();
-                            gameWon(scene);
+
+                            // ADDING A POINT TO PLAYER SCORE
+                            scene.player.addScore(1);
 
                             scene.isDragging = false;
                             scene.resetHintTimer();
@@ -193,68 +246,94 @@ export function registerDragHandlers(scene) {
         }
 
 
-        for (let i = 0; i < scene.tableau.length; i++) {
-            const stack = scene.tableau[i];
-            const topCard = stack[stack.length - 1];
+        if (!placed) {
+            for (let i = 0; i < scene.tableau.length; i++) {
+                const stack = scene.tableau[i];
+                const isEmpty = stack.length === 0;
 
-            if (!topCard) continue;
+                let targetX, targetY, topCard;
+                if (!isEmpty) {
+                    topCard = stack[stack.length - 1];
+                    targetX = topCard.container.x;
+                    targetY = topCard.container.y;
+                } else {
+                    const ph = scene.tableauPlaceholders && scene.tableauPlaceholders[i];
+                    if (!ph) continue;
+                    targetX = ph.x;
+                    targetY = ph.y;
+                }
 
-            const dx = gameObject.x - topCard.container.x;
-            const dy = gameObject.y - topCard.container.y;
+                const dx = gameObject.x - targetX;
+                const dy = gameObject.y - targetY;
 
-            const thresholdX = 100;
-            const thresholdY = 140;
+                const thresholdX = 100;
+                const thresholdY = 140;
 
-            if (Math.abs(dx) < thresholdX && Math.abs(dy) < thresholdY) {
-                const sameSuit = currentCard.suit === topCard.suit;
-                const rankDiff = Math.abs(currentCard.rank - topCard.rank) === 1;
+                if (Math.abs(dx) < thresholdX && Math.abs(dy) < thresholdY) {
+                    let accept = false;
 
-                if (sameSuit && rankDiff) {
-                    let prevStackIdx = -1;
-                    let prevIndex = -1;
-                    for (let sIdx = 0; sIdx < scene.tableau.length; sIdx++) {
-                        const s = scene.tableau[sIdx];
-                        const idx = s.indexOf(currentCard);
-                        if (idx !== -1) { prevStackIdx = sIdx; prevIndex = idx; break; }
+                    if (isEmpty) {
+                        accept = true;
+                    } else {
+                        const sameSuit = currentCard.suit === topCard.suit;
+                        const rankDiff = Math.abs(currentCard.rank - topCard.rank) === 1;
+                        if (sameSuit && rankDiff) accept = true;
                     }
 
-                    const action = {
-                        card: currentCard,
-                        fromType: 'tableau',
-                        fromStack: prevStackIdx,
-                        fromIndex: prevIndex,
-                        prevStartX: currentCard.startX,
-                        prevStartY: currentCard.startY,
-                        prevOriginalDepth: currentCard.originalDepth,
-                        prevOriginalAngle: currentCard.originalAngle,
-                        toType: 'tableau',
-                        toStack: i,
-                        time: Date.now()
-                    };
-
-                    if (prevStackIdx !== -1) {
-                        const src = scene.tableau[prevStackIdx];
-                        const idx = src.indexOf(currentCard);
-                        if (idx !== -1) {
-                            src.splice(idx, 1);
-                            compactStack(src);
+                    if (accept) {
+                        let prevStackIdx = -1;
+                        let prevIndex = -1;
+                        for (let sIdx = 0; sIdx < scene.tableau.length; sIdx++) {
+                            const s = scene.tableau[sIdx];
+                            const idx = s.indexOf(currentCard);
+                            if (idx !== -1) { prevStackIdx = sIdx; prevIndex = idx; break; }
                         }
+
+                        const action = {
+                            card: currentCard,
+                            fromType: 'tableau',
+                            fromStack: prevStackIdx,
+                            fromIndex: prevIndex,
+                            prevStartX: currentCard.startX,
+                            prevStartY: currentCard.startY,
+                            prevOriginalDepth: currentCard.originalDepth,
+                            prevOriginalAngle: currentCard.originalAngle,
+                            toType: 'tableau',
+                            toStack: i,
+                            time: Date.now()
+                        };
+
+                        if (prevStackIdx !== -1) {
+                            const src = scene.tableau[prevStackIdx];
+                            const idx = src.indexOf(currentCard);
+                            if (idx !== -1) {
+                                src.splice(idx, 1);
+                                compactStack(src);
+                            }
+                        }
+
+                        stack.push(currentCard);
+                        currentCard.originStackIndex = i;
+                        currentCard.originIndex = stack.length - 1;
+
+                        if (isEmpty) {
+                            currentCard.startX = targetX;
+                            currentCard.startY = targetY;
+                        } else {
+                            currentCard.startX = topCard.startX;
+                            currentCard.startY = topCard.startY + (stack.length - 1) * -4;
+                        }
+
+                        currentCard.container.x = currentCard.startX;
+                        currentCard.container.y = currentCard.startY;
+                        currentCard.container.setDepth(i * 100 + stack.length);
+                        compactStack(stack);
+                        scene.returnStack.push(action);
+                        scene.hud?.updateReturnButton();
+
+                        placed = true;
+                        break;
                     }
-
-                    stack.push(currentCard);
-                    currentCard.originStackIndex = i;
-                    currentCard.originIndex = stack.length - 1;
-                    currentCard.startX = topCard.startX;
-                    currentCard.startY = topCard.startY + (stack.length - 1) * -4;
-                    currentCard.container.x = currentCard.startX;
-                    currentCard.container.y = currentCard.startY;
-                    currentCard.container.setDepth(i * 100 + stack.length);
-                    compactStack(stack);
-                    scene.returnStack.push(action);
-                    scene.hud?.updateReturnButton();
-
-                    placed = true;
-                    break;
                 }
             }
         }

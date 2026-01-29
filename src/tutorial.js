@@ -160,19 +160,19 @@ export class Tutorial {
     }
 
     canDrag(card) {
-    if (!this.isActive) return true;
-    if (!this.stepCard) return false;
-    
-    console.log('Comparing cards:', {
-        card: `${card.suit}${card.rank} (${card.startX}, ${card.startY})`,
-        stepCard: `${this.stepCard.suit}${this.stepCard.rank} (${this.stepCard.startX}, ${this.stepCard.startY})`,
-        suitEqual: card.suit === this.stepCard.suit,
-        rankEqual: card.rank === this.stepCard.rank,
-    });
-    
-    return card.suit === this.stepCard.suit &&
-           card.rank === this.stepCard.rank 
-            
+        if (!this.isActive) return true;
+        if (!this.stepCard) return false;
+
+        console.log('Comparing cards:', {
+            card: `${card.suit}${card.rank} (${card.startX}, ${card.startY})`,
+            stepCard: `${this.stepCard.suit}${this.stepCard.rank} (${this.stepCard.startX}, ${this.stepCard.startY})`,
+            suitEqual: card.suit === this.stepCard.suit,
+            rankEqual: card.rank === this.stepCard.rank,
+        });
+
+        return card.suit === this.stepCard.suit &&
+            card.rank === this.stepCard.rank
+
     }
 
     start() {
@@ -367,10 +367,10 @@ export class Tutorial {
 
     drawTutorialBlockOverlays() {
         this.blockOverlay = this.scene.add.rectangle(15, 855, 385, 300, 0x000000, 0.5)
-                .setOrigin(0)
-                .setDepth(99999).setInteractive();
+            .setOrigin(0)
+            .setDepth(99999).setInteractive();
         this.blockOverlayShuffle = this.scene.add.rectangle(219, 221, 170, 101, 0x000000, 0.5)
             .setOrigin(0)
-            .setDepth(99999).setInteractive();     
+            .setDepth(99999).setInteractive();
     }
 }

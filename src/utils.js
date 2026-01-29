@@ -48,6 +48,7 @@ export async function renderDeck(scene, deck) {
   });
 
   const stackPositions = [];
+  scene.stackPositions = stackPositions;
 
   for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
     const row = rows[rowIdx];
@@ -83,8 +84,15 @@ export async function renderDeck(scene, deck) {
       });
 
       scene.stackAngles.push(angle);
+
+      const placeholder = scene.add.image(x, y, 'common1', 'card_place')
+        .setAngle(angle)
+        .setDepth(0).setScale(1.5); 
+      if (!scene.tableauPlaceholders) scene.tableauPlaceholders = [];
+      scene.tableauPlaceholders.push(placeholder);
     }
   }
+
   scene.input.enabled = false;
 
   await new Promise((resolve) => {
@@ -141,6 +149,7 @@ export async function renderDeck(scene, deck) {
   scene.input.enabled = true;
   scene.tutorial?.start();
 }
+
 
 export function renderFoundation(scene) {
   const fStartX = 500;
