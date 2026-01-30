@@ -180,6 +180,7 @@ export class Tutorial {
             console.log('Tutorial completed');
             return;
         }
+        this.drawTutorialSkipButton();
 
         this.showStep(this.currentStep);
     }
@@ -197,6 +198,10 @@ export class Tutorial {
         console.log("current step" + this.currentStep)
 
         if (this.currentStep === 10) {
+            if (this.skipButton) {
+                this.skipButton.destroy();
+                this.skipButton = null;
+            }
             console.log('Tutorial completed!');
             const overlay = this.scene.add.rectangle(0, 0, this.scene.scale.width, this.scene.scale.height, 0x000000, 0.5)
                 .setOrigin(0)
@@ -372,5 +377,41 @@ export class Tutorial {
         this.blockOverlayShuffle = this.scene.add.rectangle(219, 221, 170, 101, 0x000000, 0.5)
             .setOrigin(0)
             .setDepth(99999).setInteractive();
+    }
+
+    drawTutorialSkipButton() {
+        this.skipButton = this.scene.add.container(1650, 70).setDepth(100000);
+        const bg = this.scene.add.image(0, 0, 'common1', 'but_red_down').setScale(1.5, 1);
+        this.skipButton.add(bg);
+        this.skipButton.setSize(bg.width, bg.height);
+        this.skipButton.setInteractive();
+        this.skipButton.add(this.scene.add.text(0, 0, 'SKIP TUTORIAL', {
+            fontFamily: 'Arial',
+            fontSize: '36px',
+            color: '#FFFFFF',
+            stroke: '#000000',
+            fontStyle: 'bold',
+            strokeThickness: 6,
+            align: 'center'
+        }).setOrigin(0.5));
+        this.skipButton.bg = bg;
+
+        this.skipButton.on('pointerover', () => this.skipButton.bg.setFrame('but_red_out'));
+        this.skipButton.on('pointerout', () => this.skipButton.bg.setFrame('but_red_down'));
+
+
+
+        this.skipButton.once('pointerdown', () => {
+            this.clearTutorialElements();
+            if (this.skipButton) {
+                this.skipButton.destroy();
+                this.skipButton = null;
+            }
+            this.isActive = false;
+            this.blockOverlay.destroy();
+            this.blockOverlayShuffle.destroy();
+            this.scene.tutorial = null;
+            this.scene.resetHintTimer();
+        })
     }
 }

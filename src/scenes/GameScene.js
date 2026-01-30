@@ -61,7 +61,7 @@ this.bot2?.start();
     createSpark(this);
     this.returnStack = [];
 
-    if (GameState.currentLevel === 1) {
+    if (GameState.currentLevel === 1 && GameState.currentRound === 1) {
       console.log("Gamestate 1")
       this.tutorial = new Tutorial(this);
       this.deck = this.tutorial.createTutorialDeck();
