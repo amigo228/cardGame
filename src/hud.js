@@ -348,7 +348,7 @@ export class Hud {
     }
 
     updateGems(spent) {
-        const currentGems = GameState.gems; 
+        const currentGems = GameState.gems;
         const newGems = Math.max(currentGems - spent, 0);
 
         const counter = { value: currentGems };
@@ -363,7 +363,7 @@ export class Hud {
             }
         });
 
-        GameState.gems = newGems; 
+        GameState.gems = newGems;
     }
 
 
@@ -448,20 +448,27 @@ export class Hud {
         border.moveTo(1160, 800);
         border.lineTo(1160, 1040);
         border.strokePath();
-        const arrowSize = 80; 
-    
-    const leftArrow = this.scene.add.image(1215, 920, 'arrow-curved-icon')
-        .setDepth(11)
-        .setAngle(-90)
-        .setDisplaySize(arrowSize, arrowSize) 
-    
-    const rightArrow = this.scene.add.image(1105, 920, 'arrow-curved-icon')
-        .setDepth(11)
-        .setAngle(90)
-        .setDisplaySize(arrowSize, arrowSize)
-        .setOrigin(0.5, 0.5);
+        const arrowSize = 80;
 
-        //this.scene.tweens.add({ targets: [leftArrow, rightArrow], scale: 0.64, duration: 900, yoyo: true, repeat: -1 });
+        const leftArrow = this.scene.add.image(1215, 920, 'arrow-curved-icon')
+            .setDepth(11)
+            .setAngle(-90)
+            .setDisplaySize(arrowSize, arrowSize)
+
+        const rightArrow = this.scene.add.image(1105, 920, 'arrow-curved-icon')
+            .setDepth(11)
+            .setAngle(90)
+            .setDisplaySize(arrowSize, arrowSize)
+            .setOrigin(0.5, 0.5);
+
+        this.scene.tweens.add({
+            targets: [leftArrow, rightArrow],
+            displayWidth: arrowSize * 1.1,
+            displayHeight: arrowSize * 1.1,
+            duration: 900,
+            yoyo: true,
+            repeat: -1
+        });
     }
 
     playBoosterExplosion(x, y) {
