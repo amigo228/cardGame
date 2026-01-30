@@ -171,10 +171,6 @@ export class Bot {
         return Phaser.Math.Clamp(delay, 400, 60000);
     }
 
-
-
-
-
     addScore() {
         if (this.scene.gameEnded) return;
         this.score++;

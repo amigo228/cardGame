@@ -4,6 +4,7 @@ export const GameState = {
   maxRounds: 2,
   tournamentPlayers: [], 
   eliminatedBots: [],
+  gems: 2000,
 
   resetTournament() {
     this.currentRound = 1;

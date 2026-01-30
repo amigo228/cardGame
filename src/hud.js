@@ -1,6 +1,7 @@
 import { returnCardAnimation } from './returnCardAnimation.js';
 import { playBeatCardAnimation, playBeatAllCardAnimation } from './beatCardAnimation.js';
-import {languages} from './languages.js';
+import { languages } from './languages.js';
+import { GameState } from './GameState.js';
 
 export class Hud {
     constructor(scene, onShuffle) {
@@ -193,7 +194,7 @@ export class Hud {
             this.overlay.off('pointerdown');
             this.hideOverlay(null, [...(container.relatedButtons), container], () => this.createLanguageButtons());
 
-            
+
         })
         return container.setScale(2);
     }
@@ -205,14 +206,14 @@ export class Hud {
 
         const languageButtons = languages.map((l, index) => {
             let languageButton = null;
-            if(l.id === this.currentLanguage) {
+            if (l.id === this.currentLanguage) {
                 languageButton = this.scene.add.container(startX + gapX * index, startY);
                 const bg = this.scene.add.image(0, 0, 'but_round3').setScale(0.7);
                 languageButton.add(bg);
                 languageButton.setSize(bg.width, bg.height).setDepth(1000000);
             }
             else {
-                languageButton = this.createToggleButton({x: startX + gapX * index, y: startY});
+                languageButton = this.createToggleButton({ x: startX + gapX * index, y: startY });
             }
             languageButton.add(this.scene.add.image(0, 0, 'common1', l.icon).setScale(0.7)).setScale(2);
             languageButton.id = l.id;
@@ -221,7 +222,7 @@ export class Hud {
 
         languageButtons.forEach((l, index) => {
             l.on('pointerdown', () => {
-                if(this.currentLanguage === l.id) return;
+                if (this.currentLanguage === l.id) return;
                 this.currentLanguage = l.id;
                 this.hideOverlay(this.overlay, languageButtons);
             })
@@ -322,10 +323,52 @@ export class Hud {
     setupGemsButton() {
         const x = 120;
         const y = 266;
-        this.scene.add.image(x, y, 'common1', 'money_ico_btn').setScale(1.5)
-            .setDepth(5);
-        const gemsBtn = this.locateButtonBackground(x, y + 8);
+
+        this.gemsContainer = this.scene.add.container(x, y);
+        this.gemsContainer.setDepth(5);
+
+        const icon = this.scene.add.image(-2, -5, 'common2', 'shop_icon_money')
+            .setScale(1.2)
+            .setOrigin(0.5);
+
+        const bg = this.locateButtonBackground(0, 8);
+
+        const gems = this.scene.add.text(0, 33, GameState.gems, {
+            fontFamily: 'Arial',
+            fontSize: '36px',
+            color: '#000000',
+            stroke: '#FFFFFF',
+            fontStyle: 'bold',
+            align: 'center',
+            strokeThickness: 6
+        }).setOrigin(0.5);
+        this.gemsContainer.text = gems;
+
+        this.gemsContainer.add([bg, icon, gems]);
     }
+
+    updateGems(spent) {
+        const currentGems = GameState.gems; 
+        const newGems = Math.max(currentGems - spent, 0);
+
+        const counter = { value: currentGems };
+
+        this.scene.tweens.add({
+            targets: counter,
+            value: newGems,
+            duration: 300,
+            ease: 'Cubic.Out',
+            onUpdate: () => {
+                this.gemsContainer.text.setText(Math.floor(counter.value));
+            }
+        });
+
+        GameState.gems = newGems; 
+    }
+
+
+
+
 
     locateButtonBackground(x, y) {
         const btn = this.scene.add.image(x - 3, y, 'common1', 'but_gp1_1').setScale(1.5)
@@ -340,6 +383,7 @@ export class Hud {
     setupJokerButton() {
         const joker = this.scene.add.image(120, 970, 'common1', 'b_joker_out').setScale(1.5).setDepth(3).setInteractive();
         joker.on("pointerdown", () => {
+            this.updateGems(100);
             this.playBoosterExplosion(120, 970);
             this.drawGemsCost(180, 860, 100);
             joker.setFrame('b_joker_gray_out');
@@ -354,6 +398,7 @@ export class Hud {
     setupMagicButton() {
         const magic = this.scene.add.image(300, 970, 'common1', 'b_magic_out').setScale(1.5).setDepth(3).setInteractive();
         magic.on("pointerdown", () => {
+            this.updateGems(25);
             this.playBoosterExplosion(300, 970);
             this.drawGemsCost(360, 860, 25);
             magic.setFrame('b_magic_gray_out');

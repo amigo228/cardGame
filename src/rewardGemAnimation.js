@@ -1,4 +1,5 @@
 export function playRewardGemAnimation(scene, x, y) {
+    scene.hud?.updateGems(-1);
     console.log("RewardGemAnimation");
     const gem = scene.add.image(x - 30, y, 'common1', 'money_ico_btn').setScale(1.5)
         .setDepth(5000);
