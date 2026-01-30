@@ -74,7 +74,7 @@ export class Player {
             ease: 'Sine.easeOut',
             onComplete: () => {
                 this.scene.updateLeaderboard();
-                this.scene.checkGameEnd();
+                this.scene.checkRoundEnd();
                 }
         });
     }

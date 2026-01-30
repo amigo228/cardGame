@@ -18,7 +18,8 @@ export class Hint {
       const foundation = foundations[i];
       const type = foundation.type;
       const suit = foundation.suit;
-      const topRank = foundation.cards.at(-1).rank;
+      const top = foundation.cards.at(-1);
+      const topRank = top ? top.rank : null;
 
       for (let j = 0; j < tableau.length; ++j) {
         const stack = tableau[j];
@@ -29,11 +30,13 @@ export class Hint {
         const validAsc =
           type === 'asc' &&
           suit === card.suit &&
+          topRank !== null &&
           card.rank === topRank + 1;
 
         const validDesc =
           type === 'desc' &&
           suit === card.suit &&
+          topRank !== null &&
           card.rank === topRank - 1;
 
         if (validAsc || validDesc) {
@@ -41,6 +44,31 @@ export class Hint {
           this.hintCard = card;
           return;
         }
+      }
+    }
+
+    const emptyIndices = [];
+    for (let i = 0; i < tableau.length; i++) {
+      if (tableau[i].length === 0) emptyIndices.push(i);
+    }
+
+    if (emptyIndices.length > 0) {
+      let mostLoadedIdx = -1;
+      let mostLoadedLen = 1; 
+      for (let i = 0; i < tableau.length; i++) {
+        const len = tableau[i].length;
+        if (len > mostLoadedLen) {
+          mostLoadedLen = len;
+          mostLoadedIdx = i;
+        }
+      }
+
+      if (mostLoadedIdx !== -1) {
+        const fromStack = tableau[mostLoadedIdx];
+        const fromCard = fromStack.at(-1);
+        this.hintCard = fromCard;
+        this.targetEmptyStackIndex = emptyIndices[0];
+        return;
       }
     }
 
@@ -67,24 +95,6 @@ export class Hint {
           return;
         }
       }
-    }
-
-    for (let i = 0; i < tableau.length; i++) {
-        const fromStack = tableau[i];
-        if (!fromStack.length) continue;
-
-        const fromCard = fromStack.at(-1);
-        
-        for (let j = 0; j < tableau.length; j++) {
-            if (i === j) continue;
-            
-            const toStack = tableau[j];
-            if (toStack.length === 0) {
-                this.hintCard = fromCard;
-                this.targetEmptyStackIndex = j; 
-                return;
-            }
-        }
     }
   }
 

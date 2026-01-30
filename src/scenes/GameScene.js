@@ -15,31 +15,47 @@ export class GameScene extends Phaser.Scene {
     super('GameScene');
   }
 
-  preload() {
-  }
-
-
   create() {
     this.gameEnded = false;
-    // INITING BOTS
-    console.log("avail.bots", BOT_ASSETS);
-    this.bots = BOT_ASSETS.filter(bot => bot.inGame);
-    this.bot1 = new Bot(this, this.bots[0], 210, 600, 'OPPONENT 1');
-    this.bot1.start();
 
-    this.bot2 = new Bot(this, this.bots[1], 210, 770, 'OPPONENT 2');
-    this.bot2.start();
+    if (!GameState.tournamentPlayers || GameState.tournamentPlayers.length === 0) {
+      const players = [{ id: 'player', type: 'player', key: 'player_icon' }];
+
+      const botsForTournament = BOT_ASSETS
+        .filter(b => b.inGame)
+        .slice(0, 2)
+        .map(b => ({ id: b.id, type: 'bot', key: b.id }));
+
+      GameState.tournamentPlayers = players.concat(botsForTournament);
+      GameState.eliminatedBots = GameState.eliminatedBots || [];
+      GameState.currentRound = GameState.currentRound || 1;
+    }
+
+    const activeBotEntries = GameState.tournamentPlayers
+      .filter(p => p.type === 'bot' && !GameState.eliminatedBots.includes(p.id));
+
+    this.bots = activeBotEntries.map(pe => BOT_ASSETS.find(a => a.id === pe.id)).filter(Boolean);
+const indices = Phaser.Math.Between(0, 1) === 0 ? [0, 1] : [1, 0];
+    if (this.bots[0]) {
+      this.bot1 = new Bot(this, this.bots[0], 210, 600, 'OPPONENT 1', indices[0]);
+    } else {
+      this.bot1 = null;
+    }
+    if (this.bots[1]) {
+      this.bot2 = new Bot(this, this.bots[1], 210, 770, 'OPPONENT 2', indices[1]);
+    } else {
+      this.bot2 = null;
+    }
+
 
     // INITING PLAYER
     this.player = new Player(this, "player_icon", 210, 430, 'PLAYER');
 
+    // INITING LEADERBOARD 
+    this.leaderboard = [this.player, this.bot1, this.bot2].filter(Boolean);
 
-    //INITING LEADERBORD
-    this.leaderboard = [
-      this.player,
-      this.bot1,
-      this.bot2
-    ];
+    this.bot1?.start();
+this.bot2?.start();
 
     //OTHER CODE FIELD AND OTHER
     createSpark(this);
@@ -54,31 +70,31 @@ export class GameScene extends Phaser.Scene {
       this.tutorialActive = true;
       this.tutorial = null;
       drawOtherTutorials(this, this.scale.width / 2, this.scale.height / 2, 'These are your opponents.\n Your task is to clear the\n field faster than them.', { x: 450, y: 680, angle: 0 }, null, () => {
-            this.tutorialActive = false;
-            this.resetHintTimer();
-        });
+        this.tutorialActive = false;
+        this.resetHintTimer();
+      });
       this.deck = createDeck(this);
     }
     else if (GameState.currentLevel === 3) {
       this.tutorialActive = true;
       this.tutorial = null;
       drawOtherTutorials(
-        this, 
-        720, 
-        970, 
-        'Use magic booster to find\n one suitable card on field', 
+        this,
+        720,
+        970,
+        'Use magic booster to find\n one suitable card on field',
         { x: 400, y: 970, angle: 0 },
         {
-            x: 570,
-            y: 970,
-            text: 'Use joker booster to find\n eight suitable cards on field',
-            arrow: { x: 220, y: 970, angle: 0 }
+          x: 570,
+          y: 970,
+          text: 'Use joker booster to find\n eight suitable cards on field',
+          arrow: { x: 220, y: 970, angle: 0 }
         },
         () => {
-            this.tutorialActive = false;
-            this.resetHintTimer();
+          this.tutorialActive = false;
+          this.resetHintTimer();
         }
-    );
+      );
       this.deck = createDeck(this);
     }
     else {
@@ -243,13 +259,13 @@ export class GameScene extends Phaser.Scene {
     if (this.tutorialActive) return;
 
     this.hintTimer = this.time.addEvent({
-        delay: 5000,
-        callback: () => {
-            if (this.isDragging) return;
-            this.hint.show(this.foundations, this.tableau);
-        }
+      delay: 5000,
+      callback: () => {
+        if (this.isDragging) return;
+        this.hint.show(this.foundations, this.tableau);
+      }
     });
-}
+  }
 
   updateLeaderboard() {
     const startY = 430;
@@ -260,8 +276,12 @@ export class GameScene extends Phaser.Scene {
     );
 
     sorted.forEach((entity, index) => {
-      const targetY = startY + index * stepY;
+      if (!entity) return;
+
       const wrapper = entity.getWrapper();
+      if (!wrapper) return;
+
+      const targetY = startY + index * stepY;
 
       this.tweens.add({
         targets: wrapper,
@@ -272,31 +292,19 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  checkGameEnd() {
+  checkRoundEnd() {
     if (this.gameEnded) return;
 
     const maxScore = 96;
-
-    if (this.player.score >= maxScore) {
-      this.showEndScreen(true, this.player.name);
-      return;
-    }
-
-    const winnerBot = this.leaderboard.find(
-      e => e !== this.player && e.score >= maxScore
-    );
-
-    if (winnerBot) {
-      this.showEndScreen(false, winnerBot.name);
-    }
-  }
-
-  showEndScreen(isPlayerWinner, playerName) {
-    if (this.gameEnded) return;
-    BOT_ASSETS.forEach(bot => bot.inGame = false);
+    const winner = this.leaderboard.find(e => e.score >= maxScore);
+    if (!winner) return;
 
     this.gameEnded = true;
+    const loser = this.leaderboard.find(e => e !== winner);
+    this.showRoundEndScreen(winner, loser);
+  }
 
+  showRoundEndScreen(winner, loser) {
     this.input.enabled = false;
 
     const overlay = this.add.rectangle(
@@ -306,45 +314,175 @@ export class GameScene extends Phaser.Scene {
       this.scale.height,
       0x000000,
       0.4
-    ).setDepth(100000);
+    ).setDepth(300000);
 
-    const text = isPlayerWinner
-      ? "GAME WON!"
-      : `Player ${playerName} won this level`;
-
-    const winText = this.add.text(
+    const text = this.add.text(
       this.cameras.main.centerX,
-      this.cameras.main.centerY,
-      text,
+      this.cameras.main.centerY - 60,
+      `${GameState.currentRound === 1 ? "ROUND" : "LEVEL"} WINNER\n${winner.name}`,
       {
-        fontFamily: 'Arial',
-        fontSize: '64px',
+        fontSize: '56px',
         fontStyle: 'bold',
-        color: '#ffffff',
+        color: '#ff3333',
+        align: 'center',
         stroke: '#000000',
         strokeThickness: 6
       }
-    )
-      .setOrigin(0.5)
-      .setDepth(100001)
-      .setScale(0);
+    ).setOrigin(0.5).setDepth(300001);
 
     this.tweens.add({
-      targets: winText,
-      scale: 1,
-      ease: 'Back.easeOut',
-      duration: 800,
-      onComplete: () => {
-        this.time.delayedCall(3000, () => {
-          this.cameras.main.fadeOut(500, 0, 0, 0);
+      targets: text,
+      scale: 1.2,
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
 
-          this.cameras.main.once('camerafadeoutcomplete', () => {
-            this.scene.start("MapScene", { nextLevel: true });
-          });
-        });
+    this.time.delayedCall(2000, () => {
+      overlay.destroy();
+      text.destroy();
+
+      let loserId = null;
+      if (loser === this.player) loserId = 'player';
+      else if (loser && loser.botId) loserId = loser.botId;
+
+      const knockoutUI = this.drawKnockoutTournament(loserId);
+
+      if (loserId && knockoutUI.uiMap && knockoutUI.uiMap[loserId]) {
+        this.crossOut(knockoutUI.uiMap[loserId]);
+        knockoutUI.uiMap[loserId].setAlpha(0.5);
       }
+
+      this.time.delayedCall(1500, () => {
+        this.cameras.main.fadeOut(800, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+          this.handleAfterRound(loser);
+        });
+      });
     });
   }
+
+  drawKnockoutTournament(loserId) {
+    const root = this.add.container(this.cameras.main.centerX, this.cameras.main.centerY).setDepth(200000);
+    const bg = this.add.image(0, 0, 'common2', 'win_bg_big');
+    root.add(bg);
+    root.setSize(bg.width, bg.height);
+    root.setScale(1.5);
+
+    root.add(this.add.text(0, -250, 'KNOCKOUT TOURNAMENT', {
+      fontFamily: 'Arial',
+      fontSize: '32px',
+      color: '#FFFFFF',
+      stroke: '#000000',
+      fontStyle: 'bold',
+      strokeThickness: 6
+    }).setOrigin(0.5));
+
+    const winnerCup = this.add.container(0, -100);
+    winnerCup.add(this.add.image(0, 0, 'common2', 'cup_tournament').setScale(0.8));
+    root.add(winnerCup);
+
+    const loadingText = loserId === 'player' ? 'You lose' : (GameState.currentRound === 1 ? 'Starting next round...' : "Loading map...");
+
+    const loading = this.add.container(0, 210);
+    loading.add(this.add.image(0, 0, 'common1', 'panel1'));
+    loading.add(this.add.text(0, 0, loadingText, {
+      fontFamily: 'Arial', fontSize: '24px', color: '#000000', fontStyle: 'bold', align: 'center'
+    }).setOrigin(0.5).setDepth(10));
+    root.add(loading);
+
+    const slots = [{ x: -150, y: 80 }, { x: 0, y: 80 }, { x: 150, y: 80 }];
+
+    const uiMap = {};
+
+    GameState.tournamentPlayers.forEach((p, i) => {
+      const slot = slots[i] || { x: -150 + i * 150, y: 80 }; 
+      const ui = this.createUserWrapper(p.type === 'player', slot, p.type === 'bot' ? p.key : null);
+      root.add(ui);
+      uiMap[p.id] = ui;
+
+      if (GameState.eliminatedBots.includes(p.id)) {
+        this.crossOut(ui);
+        ui.setAlpha(0.5);
+      }
+    });
+
+    return { root, uiMap };
+  }
+
+  createUserWrapper(isUser, positions, bot_key = null) {
+    const wrapper = this.add.container(positions.x, positions.y);
+    const bg = this.add.image(0, 0, 'common1', isUser ? 'ava_user_frame' : 'ava_frame');
+    wrapper.bg = bg;
+    const wi = this.add.image(
+      0,
+      0,
+      isUser ? 'player_icon' : bot_key,
+      null
+    ).setScale(isUser ? 0.7 : 1);
+    wrapper.wi = wi;
+    wrapper.add([bg, wi]);
+    return wrapper;
+  }
+
+  crossOut(wrapper) {
+    if (!wrapper) return;
+
+    const size = 80;
+    const thickness = 10;
+
+    const g = this.add.graphics();
+    g.lineStyle(thickness, 0xff0000, 1);
+
+    g.beginPath();
+    g.moveTo(-size / 2, -size / 2);
+    g.lineTo(size / 2, size / 2);
+    g.strokePath();
+
+    g.beginPath();
+    g.moveTo(size / 2, -size / 2);
+    g.lineTo(-size / 2, size / 2);
+    g.strokePath();
+
+    g.setScale(0);
+    g.setDepth((wrapper.depth || 0) + 10);
+
+    wrapper.add(g);
+
+    this.tweens.add({
+      targets: g,
+      scale: 1,
+      duration: 300,
+      ease: 'Back.easeOut'
+    });
+
+    wrapper.cross = g;
+  }
+
+  handleAfterRound(loser) {
+    if (loser === this.player) {
+      GameState.eliminatedBots.push('player');
+      GameState.resetTournament();
+      BOT_ASSETS.forEach(b => b.inGame = false)
+      this.scene.start('MapScene');
+      return;
+    }
+
+    if (loser && loser.botId) {
+      GameState.eliminatedBots.push(loser.botId);
+    }
+
+    if (GameState.currentRound < GameState.maxRounds) {
+      GameState.nextRound();
+      this.scene.restart();
+    } else {
+      GameState.resetTournament();
+      BOT_ASSETS.forEach(b => b.inGame = false)
+      this.scene.start('MapScene', { nextLevel: true });
+    }
+  }
+
 }
 
 

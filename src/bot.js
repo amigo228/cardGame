@@ -1,16 +1,37 @@
-import {GameState} from './GameState.js';
+import { GameState } from './GameState.js';
 
 export class Bot {
-    constructor(scene, botData, x, y, name) {
+    constructor(scene, botData, x, y, name, index) {
+        if (!botData) {
+            this.scene = scene;
+            this.botWrapper = null;
+            this.score = 0;
+            this.botId = null;
+            return;
+        }
+
         this.scene = scene;
         this.key = botData.id;
-        this.botWrapper = null;
+        this.botId = botData.id;
         this.startX = x;
         this.startY = y;
         this.name = name;
-        this.createBot();
+        this.botWrapper = null;
         this.score = 0;
+        this.baseSpeedFactor = Phaser.Math.FloatBetween(0.85, 1.15);
+        this.catchUpFactor = Phaser.Math.FloatBetween(1.05, 1.25);
+        this.fatigueFactor = Phaser.Math.FloatBetween(0.9, 1.0);
+        this.startLag = index === 0
+            ? 0
+            : Phaser.Math.Between(5000, 8000);
+        this.role = index === 0 ? 'leader' : 'chaser';
+
+        this.targetLead = Phaser.Math.Between(8, 12);
+
+        this.leadReached = false;
+        this.createBot();
     }
+
 
     createBot() {
         this.botWrapper = this.scene.add.container(this.startX, this.startY).setDepth(5);
@@ -56,32 +77,103 @@ export class Bot {
     }
 
     start() {
-        let baseDelay;
-        if (GameState.currentLevel <= 3) {
-            baseDelay = Phaser.Math.Between(35000, 40000);
-        } else if (GameState.currentLevel <= 10) {
-            const levelFactor = (GameState.currentLevel - 3) / 7;
-            const minDelay = 15000 + (10000 * (1 - levelFactor));
-            const maxDelay = 25000 + (10000 * (1 - levelFactor));
-            baseDelay = Phaser.Math.Between(minDelay, maxDelay);
-        } else if (GameState.currentLevel <= 19) {
-            const levelFactor = (GameState.currentLevel - 10) / 10;
-            const minDelay = 3000 + (10000 * (1 - levelFactor));
-            const maxDelay = 8000 + (10000 * (1 - levelFactor));
-            baseDelay = Phaser.Math.Between(minDelay, maxDelay);
-        } else {
+        this.scene.time.delayedCall(this.startLag, () => {
+            this.scheduleNextScore();
+        });
+    }
 
-            baseDelay = Phaser.Math.Between(3000, 8000);
-        }
+    scheduleNextScore() {
+        if (this.scene.gameEnded) return;
+
+        const delay = this.calculateNextDelay();
 
         this.scoreTimer = this.scene.time.addEvent({
-            delay: baseDelay,
-            loop: true,
+            delay,
             callback: () => {
                 this.addScore();
+                this.scheduleNextScore();
             }
         });
     }
+
+    calculateNextDelay() {
+        const level = GameState.currentLevel;
+
+        let min = 3000;
+        let max = 8000;
+
+        if (level <= 3) {
+            min = 35000;
+            max = 40000;
+        } else if (level <= 10) {
+            min = 12000;
+            max = 22000;
+        }
+
+
+        let delay = Phaser.Math.Between(min, max);
+
+
+        delay *= this.baseSpeedFactor;
+
+        const opponent = (this.scene.leaderboard || []).find(b => {
+            if (!b || b === this) return false;
+            if (b.botId && this.botId) return b.botId !== this.botId;
+            return typeof b.getScore === 'function' && b !== this;
+        });
+
+        if (!opponent) {
+            // если соперника нет — возвращаем обычный delay
+            delay *= Phaser.Math.FloatBetween(0.9, 1.1);
+            return Phaser.Math.Clamp(delay, 800, 60000);
+        }
+
+
+        const lead = this.score - opponent.score;
+
+        const opponentLead = opponent.score - this.score;
+
+
+        if (this.role === 'leader') {
+
+            if (!this.leadReached) {
+
+                delay *= Phaser.Math.FloatBetween(0.45, 0.65);
+
+                if (lead >= this.targetLead) {
+                    this.leadReached = true;
+                }
+            } else {
+
+                delay *= Phaser.Math.FloatBetween(1.3, 1.7);
+
+                if (Phaser.Math.Between(1, 100) <= 10) {
+                    delay *= Phaser.Math.FloatBetween(0.5, 0.8);
+                }
+            }
+        }
+
+        if (this.role === 'chaser') {
+            if (opponentLead >= 4 && opponentLead < this.targetLead) {
+                delay *= Phaser.Math.FloatBetween(0.45, 0.75);
+            }
+            if (opponentLead >= this.targetLead) {
+                const extraFactor = Phaser.Math.Clamp(opponentLead / (this.targetLead * 2), 0.25, 2.0);
+                delay *= Phaser.Math.FloatBetween(0.25, 0.55) * (1 / extraFactor);
+            }
+            if (this.score > opponent.score + 1) {
+                delay *= Phaser.Math.FloatBetween(1.05, 1.25);
+            }
+        }
+
+        delay *= Phaser.Math.FloatBetween(0.9, 1.12);
+
+        return Phaser.Math.Clamp(delay, 400, 60000);
+    }
+
+
+
+
 
     addScore() {
         if (this.scene.gameEnded) return;
@@ -104,7 +196,7 @@ export class Bot {
             ease: 'Sine.easeOut',
             onComplete: () => {
                 this.scene.updateLeaderboard();
-                this.scene.checkGameEnd();
+                this.scene.checkRoundEnd();
             }
         });
     }
@@ -116,4 +208,5 @@ export class Bot {
     getScore() {
         return this.score;
     }
+
 }
