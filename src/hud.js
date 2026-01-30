@@ -356,7 +356,7 @@ export class Hud {
         this.scene.tweens.add({
             targets: counter,
             value: newGems,
-            duration: 300,
+            duration: 200,
             ease: 'Cubic.Out',
             onUpdate: () => {
                 this.gemsContainer.text.setText(Math.floor(counter.value));
@@ -432,42 +432,29 @@ export class Hud {
     //foundation hud part
 
     setupFoundationHud() {
-    const hudContainer = this.scene.add.container(0, 0).setDepth(10);
+        const border = this.scene.add.graphics();
 
-    const border = this.scene.add.graphics();
-    border.lineStyle(4, 0xffffff, 1);
-    border.strokeRoundedRect(410, 800, 1500, 240, 16);
-    hudContainer.add(border);
+        border.lineStyle(4, 0xffffff, 1);
+        border.strokeRoundedRect(
+            410,
+            800,
+            1500,
+            240,
+            16
+        ).setDepth(10);
 
-    border.lineStyle(3, 0xffffff, 0.8);
-    border.beginPath();
-    border.moveTo(1160, 800);
-    border.lineTo(1160, 1040);
-    border.strokePath();
+        border.lineStyle(3, 0xffffff, 0.8);
+        border.beginPath();
+        border.moveTo(1160, 800);
+        border.lineTo(1160, 1040);
+        border.strokePath();
+        const leftArrow = this.scene.add.image(1215, 920, 'arrow-curved-icon').setDepth(11).setAngle(-90).setScale(0.6).setFlipX(true);
+        const rightArrow = this.scene.add.image(1105, 920, 'arrow-curved-icon').setDepth(11).setAngle(90).setScale(0.6).setFlipX(true);
+        leftArrow.setOrigin(0.5, 0.5);
+rightArrow.setOrigin(0.5, 0.5);
 
-    const leftArrow = this.scene.add.image(1215, 920, 'arrow-curved-icon')
-        .setAngle(-90)
-        .setFlipX(true);
-    const rightArrow = this.scene.add.image(1105, 920, 'arrow-curved-icon')
-        .setAngle(90)
-        .setFlipX(true);
-
-    const targetWidth = 100;
-    const targetHeight = 100;
-    leftArrow.setDisplaySize(targetWidth, targetHeight);
-    rightArrow.setDisplaySize(targetWidth, targetHeight);
-
-    hudContainer.add([leftArrow, rightArrow]);
-
-    this.scene.tweens.add({
-        targets: [leftArrow, rightArrow],
-        scale: 0.6, 
-        duration: 900,
-        yoyo: true,
-        repeat: -1
-    });
-}
-
+        this.scene.tweens.add({ targets: [leftArrow, rightArrow], scale: 0.64, duration: 900, yoyo: true, repeat: -1 });
+    }
 
     playBoosterExplosion(x, y) {
         const emitter = this.scene.add.particles(x, y, 'spark', {
